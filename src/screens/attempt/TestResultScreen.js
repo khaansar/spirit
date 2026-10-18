@@ -29,27 +29,49 @@ import apiClient from '../../api/client';
 export function TestResultScreen({ route, navigation }) {
   const { result: initialResult, attemptId: routeAttemptId } = route.params || {};
 
-  const [result, setResult] = useState(initialResult || null);
-  const [loading, setLoading] = useState(!initialResult && !!routeAttemptId);
+  const hasValidReport = !!(initialResult?.summary && (initialResult.summary.totalScore !== undefined || initialResult.sectionBreakdown));
+  const effectiveAttemptId = initialResult?.metadata?.attemptId || initialResult?.attemptId || routeAttemptId;
 
-  const attemptId = result?.metadata?.attemptId || result?.attemptId || routeAttemptId || 'REPORT';
+  const [result, setResult] = useState(hasValidReport ? initialResult : null);
+  const [loading, setLoading] = useState(!hasValidReport && !!effectiveAttemptId);
+
+  const attemptId = result?.metadata?.attemptId || result?.attemptId || effectiveAttemptId || 'REPORT';
 
   useEffect(() => {
-    if (!result && routeAttemptId) {
-      setLoading(true);
-      apiClient
-        .get(`/analytics-api/reports/${routeAttemptId}`)
-        .then((res) => {
-          setResult(res);
-        })
-        .catch((err) => {
-          console.warn('Failed to fetch test report:', err?.message);
-        })
-        .finally(() => {
+    if (!result && effectiveAttemptId) {
+      let isMounted = true;
+      let retries = 0;
+      const maxRetries = 8;
+
+      const pollReport = async () => {
+        try {
+          const res = await apiClient.get(`/analytics-api/reports/${effectiveAttemptId}`);
+          if (res && (res.summary || res.metadata)) {
+            if (isMounted) {
+              setResult(res);
+              setLoading(false);
+            }
+            return;
+          }
+        } catch (err) {
+          // Report may still be compiling on Kafka worker
+        }
+
+        retries++;
+        if (retries < maxRetries && isMounted) {
+          setTimeout(pollReport, 1500);
+        } else if (isMounted) {
           setLoading(false);
-        });
+        }
+      };
+
+      pollReport();
+
+      return () => {
+        isMounted = false;
+      };
     }
-  }, [routeAttemptId, result]);
+  }, [effectiveAttemptId, result]);
 
   if (loading) {
     return (

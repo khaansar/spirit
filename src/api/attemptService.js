@@ -204,62 +204,95 @@ export const attemptService = {
   },
 
   /**
-   * Saves student answer responses to the backend.
+   * Saves student answer responses using the exact Baahubali PatchAttemptRequest schema.
    */
-  async saveResponses(attemptId, answers) {
+  async saveResponse(attemptId, { questionId, selectedOption, currentQuestionIndex = 0, version = 0, currentSectionId = null }) {
     try {
-      return await apiClient.patch(`/attempts-api/${attemptId}`, { answers });
+      const payload = {
+        questionId,
+        selectedOption: selectedOption || null,
+        currentQuestionIndex: Number(currentQuestionIndex) || 0,
+        version: Number(version) || 0,
+      };
+      if (currentSectionId) {
+        payload.currentSectionId = currentSectionId;
+      }
+      return await apiClient.patch(`/attempts-api/${attemptId}`, payload);
     } catch (err) {
-      console.warn('Error saving answers in background:', err?.message);
+      console.warn(`Error saving response for question ${questionId}:`, err?.message);
       return { success: false };
     }
   },
 
   /**
-   * Submits the attempt to the backend and fetches the official report card.
+   * Submits the attempt to the backend and polls for the evaluated report.
    */
   async submitAttempt(attemptId, payload = {}) {
-    // 1. Flush any pending answers if provided
+    // 1. Flush any pending answers if provided using the exact backend Patch schema
     if (payload.responses && Object.keys(payload.responses).length > 0) {
-      const flatAnswers = {};
-      Object.entries(payload.responses).forEach(([qId, resp]) => {
+      const questionEntries = Object.entries(payload.responses);
+      let currentVersion = Number(payload.version) || 0;
+
+      for (let idx = 0; idx < questionEntries.length; idx++) {
+        const [qId, resp] = questionEntries[idx];
         if (resp?.selected && resp.selected.length > 0) {
-          flatAnswers[qId] = resp.selected[0];
+          const selectedOption = resp.selected[0];
+          try {
+            const patchRes = await apiClient.patch(`/attempts-api/${attemptId}`, {
+              questionId: qId,
+              selectedOption,
+              currentQuestionIndex: idx,
+              version: currentVersion,
+            });
+            if (patchRes?.meta?.attemptVersion != null) {
+              currentVersion = patchRes.meta.attemptVersion;
+            } else {
+              currentVersion++;
+            }
+          } catch (e) {
+            console.warn(`Could not sync answer for question ${qId}:`, e?.message);
+          }
         }
-      });
-      try {
-        await apiClient.patch(`/attempts-api/${attemptId}`, { answers: flatAnswers });
-      } catch (e) {
-        console.warn('Failed to flush final responses before submit:', e?.message);
       }
     }
 
     // 2. Submit the attempt to the backend
     await apiClient.post(`/attempts-api/${attemptId}/submit`);
 
-    // 3. Retrieve the evaluated academic performance report
-    try {
-      const report = await apiClient.get(`/analytics-api/reports/${attemptId}`);
-      if (report && report.summary) {
-        return {
-          ...report,
-          attemptId,
-          score: report.summary.totalScore,
-          totalMarks: report.summary.maxScore,
-          accuracy: report.summary.accuracyPercentage,
-          percentile: report.summary.percentile,
-          rank: report.summary.rank,
-        };
+    // 3. Poll for the evaluated report card (analytics-service computes rank/percentiles asynchronously via Kafka)
+    let report = null;
+    const maxRetries = 4;
+    for (let i = 0; i < maxRetries; i++) {
+      // Wait before polling: Kafka consumer takes ~1.5 seconds to compute
+      await new Promise((resolve) => setTimeout(resolve, i === 0 ? 1500 : 1200));
+      try {
+        const res = await apiClient.get(`/analytics-api/reports/${attemptId}`);
+        if (res && (res.summary || res.metadata)) {
+          report = res;
+          break;
+        }
+      } catch (err) {
+        // Report still being computed, retry
       }
-      return report;
-    } catch (reportErr) {
-      console.warn('Could not immediately fetch report, returning submitted status:', reportErr?.message);
+    }
+
+    if (report && report.summary) {
       return {
-        success: true,
+        ...report,
         attemptId,
-        submittedAt: new Date().toISOString(),
+        score: report.summary.totalScore,
+        totalMarks: report.summary.maxScore,
+        accuracy: report.summary.accuracyPercentage ?? report.summary.accuracy,
+        percentile: report.summary.percentile,
+        rank: report.summary.rank,
       };
     }
+
+    return {
+      success: true,
+      attemptId,
+      submittedAt: new Date().toISOString(),
+    };
   },
 
   /**

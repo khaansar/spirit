@@ -39,6 +39,7 @@ export function TestAttemptScreen({ route, navigation }) {
   const { test } = route.params || {};
 
   const {
+    attemptId,
     testTitle,
     timeRemainingSeconds,
     sections,
@@ -82,9 +83,12 @@ export function TestAttemptScreen({ route, navigation }) {
   // Navigate to Result screen once submitted
   useEffect(() => {
     if (status === 'submitted') {
-      navigation.replace('TestResult', { result: lastResult });
+      navigation.replace('TestResult', {
+        result: lastResult,
+        attemptId: lastResult?.attemptId || attemptId,
+      });
     }
-  }, [status, lastResult, navigation]);
+  }, [status, lastResult, attemptId, navigation]);
 
   // Handle Hardware Back Button
   useEffect(() => {

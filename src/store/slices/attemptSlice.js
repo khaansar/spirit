@@ -33,6 +33,7 @@ export const submitAttemptThunk = createAsyncThunk(
       const payload = {
         responses: attempt.responses,
         timeSpentSeconds: attempt.durationMinutes * 60 - attempt.timeRemainingSeconds,
+        version: attempt.attemptVersion || 0,
       };
       const result = await attemptService.submitAttempt(attempt.attemptId, payload);
       return result;
@@ -52,6 +53,7 @@ const initialState = {
   currentSectionIndex: 0,
   currentQuestionIndex: 0,
   responses: {}, // { [qId]: { selected: ['A'], marked: false, visited: true } }
+  attemptVersion: 0,
   status: 'idle', // 'idle' | 'loading' | 'active' | 'submitting' | 'submitted' | 'error'
   isPaletteOpen: false,
   isSubmitModalOpen: false,
@@ -63,6 +65,11 @@ const attemptSlice = createSlice({
   name: 'attempt',
   initialState,
   reducers: {
+    updateAttemptVersion(state, action) {
+      if (Number.isFinite(action.payload)) {
+        state.attemptVersion = action.payload;
+      }
+    },
     initLocalExam(state, action) {
       // If already active with populated questions, preserve existing state
       if (
@@ -291,6 +298,7 @@ export const {
   setPaletteOpen,
   setSubmitModalOpen,
   resetAttempt,
+  updateAttemptVersion,
 } = attemptSlice.actions;
 
 export default attemptSlice.reducer;
