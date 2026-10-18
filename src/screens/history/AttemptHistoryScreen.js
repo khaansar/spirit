@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,21 @@ import {
   StyleSheet,
   StatusBar,
   ActivityIndicator,
+  RefreshControl,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import { ArrowLeft, Clock, Trophy, CheckCircle2, ChevronRight, FileText, Award } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Clock,
+  Trophy,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  Award,
+  Play,
+} from 'lucide-react-native';
 
 import { COLORS } from '../../constants/theme';
 import { fetchHistory } from '../../store/slices/analyticsSlice';
@@ -18,10 +29,19 @@ import { fetchHistory } from '../../store/slices/analyticsSlice';
 export function AttemptHistoryScreen({ navigation }) {
   const dispatch = useDispatch();
   const { history, loading } = useSelector((state) => state.analytics);
+  const [refreshing, setRefreshing] = useState(false);
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
 
   useEffect(() => {
     dispatch(fetchHistory());
   }, [dispatch]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await dispatch(fetchHistory());
+    setRefreshing(false);
+  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'Recent';
@@ -53,69 +73,137 @@ export function AttemptHistoryScreen({ navigation }) {
       ) : (
         <FlatList
           data={history}
-          keyExtractor={(item) => item.attemptId}
-          contentContainerStyle={styles.listContent}
+          keyExtractor={(item) => item.attemptId || String(Math.random())}
+          contentContainerStyle={[
+            styles.listContent,
+            isTablet && styles.listContentTablet,
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.brand[400]}
+              colors={[COLORS.brand[400]]}
+            />
+          }
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View style={styles.historyCard}>
-              <View style={styles.cardTopRow}>
-                <View style={styles.dateRow}>
-                  <Clock size={12} color={COLORS.slate[400]} />
-                  <Text style={styles.dateText}>{formatDate(item.startedAt)}</Text>
+          renderItem={({ item }) => {
+            const isCompleted =
+              String(item.status || '').toUpperCase() === 'SUBMITTED' ||
+              String(item.status || '').toUpperCase() === 'COMPLETED';
+
+            return (
+              <View style={[styles.historyCard, isTablet && styles.historyCardTablet]}>
+                <View style={styles.cardTopRow}>
+                  <View style={styles.dateRow}>
+                    <Clock size={12} color={COLORS.slate[400]} />
+                    <Text style={styles.dateText}>{formatDate(item.startedAt)}</Text>
+                  </View>
+
+                  {isCompleted ? (
+                    <View style={styles.statusBadge}>
+                      <CheckCircle2 size={12} color={COLORS.status.success} />
+                      <Text style={styles.statusBadgeText}>Completed</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.statusBadgeInProgress}>
+                      <Clock size={12} color="#f59e0b" />
+                      <Text style={styles.statusBadgeInProgressText}>In Progress</Text>
+                    </View>
+                  )}
                 </View>
 
-                <View style={styles.statusBadge}>
-                  <CheckCircle2 size={12} color={COLORS.status.success} />
-                  <Text style={styles.statusBadgeText}>Completed</Text>
+                <View style={styles.titleRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.testTitle}>{item.testName}</Text>
+                    <Text style={styles.categoryName}>{item.categoryName || 'General Mock'}</Text>
+                  </View>
+
+                  {item.percentile != null && isCompleted && (
+                    <View style={styles.rankPill}>
+                      <Trophy size={12} color="#fbbf24" />
+                      <Text style={styles.rankPillText}>
+                        Rank #{item.rank} • Top {Math.max(1, Math.round(100 - Number(item.percentile)))}%
+                      </Text>
+                    </View>
+                  )}
                 </View>
+
+                {isCompleted ? (
+                  <View style={styles.scoreRow}>
+                    <View style={styles.scoreBox}>
+                      <Text style={styles.scoreVal}>
+                        {item.score} / {item.totalMarks}
+                      </Text>
+                      <Text style={styles.scoreLbl}>Score Obtained</Text>
+                    </View>
+
+                    <View style={styles.scoreBox}>
+                      <Text style={styles.scoreVal}>{item.accuracy}%</Text>
+                      <Text style={styles.scoreLbl}>Accuracy</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.inProgressNotice}>
+                    <AlertCircle size={14} color="#f59e0b" />
+                    <Text style={styles.inProgressNoticeText}>
+                      Test attempt in progress. Resume to finish and see your scorecard.
+                    </Text>
+                  </View>
+                )}
+
+                <View style={styles.cardDivider} />
+
+                {isCompleted ? (
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={styles.actionBtnOutline}
+                      onPress={() => navigation.navigate('TestResult', { attemptId: item.attemptId })}
+                      activeOpacity={0.7}
+                    >
+                      <Award size={14} color={COLORS.brand[400]} />
+                      <Text style={styles.actionBtnOutlineText}>Scorecard</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.actionBtnPrimary}
+                      onPress={() => navigation.navigate('SolutionsReview', { attemptId: item.attemptId })}
+                      activeOpacity={0.8}
+                    >
+                      <FileText size={14} color={COLORS.common.white} />
+                      <Text style={styles.actionBtnPrimaryText}>Solutions</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.actionBtnIconOnly}
+                      onPress={() => navigation.navigate('Leaderboard', { testSlug: item.testId })}
+                      activeOpacity={0.7}
+                    >
+                      <Trophy size={14} color={COLORS.brand[400]} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.resumeBtn}
+                    onPress={() =>
+                      navigation.navigate('TestAttempt', {
+                        test: {
+                          id: item.testId,
+                          testId: item.testId,
+                          attemptId: item.attemptId,
+                          name: item.testName,
+                        },
+                      })
+                    }
+                    activeOpacity={0.8}
+                  >
+                    <Play size={15} color={COLORS.common.white} fill={COLORS.common.white} />
+                    <Text style={styles.resumeBtnText}>Resume Mock Exam</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-
-              <Text style={styles.testTitle}>{item.testName}</Text>
-              <Text style={styles.categoryName}>{item.categoryName || 'General Mock'}</Text>
-
-              <View style={styles.scoreRow}>
-                <View style={styles.scoreBox}>
-                  <Text style={styles.scoreVal}>{item.score} / {item.totalMarks}</Text>
-                  <Text style={styles.scoreLbl}>Score Obtained</Text>
-                </View>
-
-                <View style={styles.scoreBox}>
-                  <Text style={styles.scoreVal}>{item.accuracy}%</Text>
-                  <Text style={styles.scoreLbl}>Accuracy</Text>
-                </View>
-              </View>
-
-              <View style={styles.cardDivider} />
-
-              <View style={styles.actionRow}>
-                <TouchableOpacity
-                  style={styles.actionBtnOutline}
-                  onPress={() => navigation.navigate('TestResult', { attemptId: item.attemptId })}
-                  activeOpacity={0.7}
-                >
-                  <Award size={14} color={COLORS.brand[400]} />
-                  <Text style={styles.actionBtnOutlineText}>Scorecard</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionBtnPrimary}
-                  onPress={() => navigation.navigate('SolutionsReview', { attemptId: item.attemptId })}
-                  activeOpacity={0.8}
-                >
-                  <FileText size={14} color={COLORS.common.white} />
-                  <Text style={styles.actionBtnPrimaryText}>Solutions</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionBtnIconOnly}
-                  onPress={() => navigation.navigate('Leaderboard', { testSlug: item.testId })}
-                  activeOpacity={0.7}
-                >
-                  <Trophy size={14} color={COLORS.brand[400]} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
+            );
+          }}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
               <Text style={styles.emptyTitle}>No past attempts found</Text>
@@ -308,6 +396,80 @@ const styles = StyleSheet.create({
     color: COLORS.slate[400],
     textAlign: 'center',
     lineHeight: 18,
+  },
+  listContentTablet: {
+    paddingHorizontal: 32,
+    maxWidth: 900,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  historyCardTablet: {
+    padding: 22,
+  },
+  statusBadgeInProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  statusBadgeInProgressText: {
+    color: '#f59e0b',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  rankPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(251, 191, 36, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.25)',
+  },
+  rankPillText: {
+    color: '#fbbf24',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  inProgressNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  inProgressNoticeText: {
+    color: '#f59e0b',
+    fontSize: 12,
+    flex: 1,
+    fontWeight: '500',
+  },
+  resumeBtn: {
+    height: 42,
+    borderRadius: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.brand[600],
+  },
+  resumeBtnText: {
+    color: COLORS.common.white,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 

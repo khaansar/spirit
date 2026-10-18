@@ -52,17 +52,48 @@ export const historyService = {
       const data = await apiClient.get('/attempts-api/history?page=1&perPage=50');
       const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
       if (list.length > 0) {
-        return list.map((item) => ({
-          attemptId: item.attemptId,
-          testId: item.testId,
-          testName: item.testName || 'Mock Examination',
-          categoryName: item.categoryName || 'General Mock',
-          score: item.finalScore != null ? item.finalScore : item.score ?? '—',
-          totalMarks: item.totalMarks || 100,
-          accuracy: item.accuracy != null ? Math.round(Number(item.accuracy)) : '—',
-          status: item.status || 'SUBMITTED',
-          startedAt: item.startedAt || item.createdAt || new Date().toISOString(),
-        }));
+        const resolvedList = await Promise.all(
+          list.map(async (item) => {
+            let score = item.finalScore;
+            let totalMarks = item.totalMarks || 100;
+            let accuracy = item.accuracy;
+            let rank = item.rank;
+            let percentile = item.percentile;
+
+            const isSubmitted =
+              String(item.status || '').toUpperCase() === 'SUBMITTED' ||
+              String(item.status || '').toUpperCase() === 'COMPLETED';
+
+            if ((score == null || accuracy == null) && isSubmitted) {
+              try {
+                const rep = await apiClient.get(`/analytics-api/reports/${item.attemptId}`);
+                const sum = rep?.summary || rep?.data?.summary;
+                if (sum) {
+                  score = sum.totalScore ?? score;
+                  totalMarks = sum.maxScore ?? totalMarks;
+                  accuracy = sum.accuracyPercentage ?? sum.accuracy ?? accuracy;
+                  rank = sum.rank ?? rank;
+                  percentile = sum.percentile ?? percentile;
+                }
+              } catch (_) {}
+            }
+
+            return {
+              attemptId: item.attemptId,
+              testId: item.testId,
+              testName: item.testName || 'Mock Examination',
+              categoryName: item.categoryName || 'General Mock',
+              score: score != null ? Math.round(Number(score)) : '—',
+              totalMarks: totalMarks || 100,
+              accuracy: accuracy != null ? Math.round(Number(accuracy)) : '—',
+              rank: rank || '—',
+              percentile: percentile != null ? Math.round(Number(percentile)) : null,
+              status: item.status || 'SUBMITTED',
+              startedAt: item.startedAt || item.createdAt || new Date().toISOString(),
+            };
+          })
+        );
+        return resolvedList;
       }
       return FALLBACK_HISTORY;
     } catch (err) {

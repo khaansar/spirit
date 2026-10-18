@@ -5,46 +5,49 @@ const ACCESS_TOKEN_KEY = 'clearit_access_token';
 const REFRESH_TOKEN_KEY = 'clearit_refresh_token';
 const USER_KEY = 'clearit_user';
 
-// Timeout helper: prevents async storage from hanging indefinitely
-const withTimeout = (promise, ms = 600) => {
-  return Promise.race([
-    promise,
-    new Promise((resolve) => setTimeout(() => resolve(null), ms)),
-  ]);
-};
+const memoryCache = {};
 
 export const storage = {
   async setItem(key, value) {
+    memoryCache[key] = value;
     try {
       if (Platform.OS === 'web') {
         localStorage.setItem(key, value);
         return;
       }
-      await withTimeout(SecureStore.setItemAsync(key, value), 800);
+      await SecureStore.setItemAsync(key, value);
     } catch (e) {
       console.warn(`Error setting storage item ${key}:`, e);
     }
   },
 
   async getItem(key) {
+    if (memoryCache[key] !== undefined && memoryCache[key] !== null) {
+      return memoryCache[key];
+    }
     try {
       if (Platform.OS === 'web') {
-        return localStorage.getItem(key);
+        const val = localStorage.getItem(key);
+        if (val != null) memoryCache[key] = val;
+        return val;
       }
-      return await withTimeout(SecureStore.getItemAsync(key), 600);
+      const val = await SecureStore.getItemAsync(key);
+      if (val != null) memoryCache[key] = val;
+      return val;
     } catch (e) {
       console.warn(`Error reading storage item ${key}:`, e);
-      return null;
+      return memoryCache[key] || null;
     }
   },
 
   async removeItem(key) {
+    delete memoryCache[key];
     try {
       if (Platform.OS === 'web') {
         localStorage.removeItem(key);
         return;
       }
-      await withTimeout(SecureStore.deleteItemAsync(key), 600);
+      await SecureStore.deleteItemAsync(key);
     } catch (e) {
       console.warn(`Error removing storage item ${key}:`, e);
     }
@@ -68,6 +71,9 @@ export const storage = {
   },
 
   async clearTokens() {
+    delete memoryCache[ACCESS_TOKEN_KEY];
+    delete memoryCache[REFRESH_TOKEN_KEY];
+    delete memoryCache[USER_KEY];
     await this.removeItem(ACCESS_TOKEN_KEY);
     await this.removeItem(REFRESH_TOKEN_KEY);
     await this.removeItem(USER_KEY);

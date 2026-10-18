@@ -16,6 +16,8 @@
     "@reduxjs/toolkit": "^2.6.0",
     "axios": "^1.7.7",
     "expo": "~57.0.30",
+    "expo-screen-capture": "^58.0.5",
+    "expo-screen-orientation": "^58.0.3",
     "expo-secure-store": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "lucide-react-native": "^0.441.0",

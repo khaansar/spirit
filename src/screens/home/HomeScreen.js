@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -24,21 +25,27 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Users,
   ThumbsUp,
   Star,
-  PlayCircle,
+  Play,
   BarChart2,
   Trophy,
   BookOpen,
   Receipt,
   User,
+  Moon,
+  Sun,
+  Flame,
+  Check,
 } from 'lucide-react-native';
 
 import BrandLogo from '../../components/common/BrandLogo';
 import SeriesCard from '../../components/catalog/SeriesCard';
 import TestCard from '../../components/catalog/TestCard';
 import { COLORS } from '../../constants/theme';
+import apiClient from '../../api/client';
 import {
   fetchCategories,
   fetchPopularSeries,
@@ -71,23 +78,62 @@ const FAQS = [
   },
 ];
 
+const WEEK_DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export function HomeScreen({ navigation }) {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { categories, popularSeries, featuredTests } = useSelector((state) => state.catalog);
+
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
+  const isLargeTablet = width >= 1024;
+
+  // Theme Toggle state (Moon / Sun)
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   // Live Exam Preview state
   const [previewSeconds, setPreviewSeconds] = useState(3590);
   const [previewSelected, setPreviewSelected] = useState(1);
   const [expandedFaq, setExpandedFaq] = useState(null);
 
-  const userName = user?.name || user?.email?.split('@')[0] || '';
+  // In-progress Mock Exam Attempt
+  const [continueAttempt, setContinueAttempt] = useState(null);
+
+  const userName = user?.firstName || user?.name || user?.email?.split('@')[0] || '';
+  const greeting = getGreeting();
 
   useEffect(() => {
     dispatch(fetchCategories());
     dispatch(fetchPopularSeries());
     dispatch(fetchFeaturedTests());
   }, [dispatch]);
+
+  // Check for any in-progress attempt to display ContinueCard
+  useEffect(() => {
+    if (!user) {
+      setContinueAttempt(null);
+      return;
+    }
+    apiClient
+      .get('/attempts-api/attempts/in-progress')
+      .then((res) => {
+        const item = res?.data || res;
+        if (item && (item.attemptId || item.id || item.testId)) {
+          setContinueAttempt(item);
+        }
+      })
+      .catch(() => {
+        setContinueAttempt(null);
+      });
+  }, [user]);
 
   // Live countdown timer for the exam simulation card
   useEffect(() => {
@@ -103,537 +149,689 @@ export function HomeScreen({ navigation }) {
     return `${m}:${s}`;
   };
 
+  const todayIndex = new Date().getDay();
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={COLORS.slate[950]} />
 
-      {/* Top App Bar with Logo & Auth / Avatar Button */}
+      {/* Top App Bar with Logo & Theme Toggle (Replaced avatar with Moon/Sun) */}
       <View style={styles.topBar}>
         <BrandLogo size="sm" showTagline={false} />
 
-        {user ? (
+        <View style={styles.topBarRight}>
           <TouchableOpacity
-            onPress={() => navigation.navigate('ProfileTab')}
-            style={styles.avatarButton}
+            onPress={() => setIsDarkMode((d) => !d)}
+            style={styles.themeToggleBtn}
             activeOpacity={0.7}
+            accessibilityLabel="Toggle Theme Mode"
           >
-            <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+            {isDarkMode ? (
+              <Sun size={18} color="#fbbf24" />
+            ) : (
+              <Moon size={18} color={COLORS.slate[300]} />
+            )}
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Login')}
-            style={styles.signInPill}
-            activeOpacity={0.8}
-          >
-            <LogIn size={14} color={COLORS.common.white} />
-            <Text style={styles.signInText}>Sign In</Text>
-          </TouchableOpacity>
-        )}
+
+          {!user && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Login')}
+              style={styles.signInPill}
+              activeOpacity={0.8}
+            >
+              <LogIn size={14} color={COLORS.common.white} />
+              <Text style={styles.signInText}>Sign In</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* ================================================================= */}
-        {/* 1. HERO SECTION (For Guests) vs STUDENT BANNER (For Logged In)   */}
-        {/* ================================================================= */}
-        {!user ? (
-          <View style={styles.heroSection}>
-            {/* Header copy */}
-            <View style={styles.heroBadge}>
-              <Sparkles size={13} color={COLORS.brand[400]} />
-              <Text style={styles.heroBadgeText}>INDIA'S MOCK TEST PLATFORM</Text>
-            </View>
-
-            <Text style={styles.heroTitle}>Practice on the Real Exam Interface.</Text>
-            <Text style={styles.heroSubtitle}>
-              Full-length mock tests, previous year papers, and step-by-step solutions with AI insights to help you clear your target cutoff.
-            </Text>
-
-            {/* Hero CTAs */}
-            <View style={styles.heroCtaRow}>
-              <TouchableOpacity
-                style={styles.primaryCta}
-                onPress={() => navigation.navigate('CategoriesTab')}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.primaryCtaText}>Start a Mock Test</Text>
-                <ArrowRight size={16} color={COLORS.common.white} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.secondaryCta}
-                onPress={() => navigation.navigate('SeriesTab')}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.secondaryCtaText}>Explore Series</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Core Feature Highlights */}
-            <View style={styles.featureGrid}>
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconBox}>
-                  <Monitor size={16} color={COLORS.brand[400]} />
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          isTablet && styles.scrollContentTablet,
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.mainContainer, isTablet && styles.mainContainerTablet]}>
+          {/* ================================================================= */}
+          {/* 1. HERO SECTION (For Guests) vs STUDENT BANNER (For Logged In)   */}
+          {/* ================================================================= */}
+          {!user ? (
+            <View style={[styles.heroSection, isTablet && styles.heroSectionTablet]}>
+              {/* Left Column: Hero Copy & Features */}
+              <View style={[styles.heroLeftCol, isTablet && styles.heroLeftColTablet]}>
+                <View style={styles.heroBadge}>
+                  <Sparkles size={13} color={COLORS.brand[400]} />
+                  <Text style={styles.heroBadgeText}>INDIA'S MOCK TEST PLATFORM</Text>
                 </View>
-                <View style={styles.featureTextBox}>
-                  <Text style={styles.featureTitle}>Real Exam UI</Text>
-                  <Text style={styles.featureDesc}>Exact timer & question palette</Text>
-                </View>
-              </View>
 
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconBox}>
-                  <FileText size={16} color={COLORS.accent.skyLight} />
-                </View>
-                <View style={styles.featureTextBox}>
-                  <Text style={styles.featureTitle}>Past Papers</Text>
-                  <Text style={styles.featureDesc}>Actual exam pattern questions</Text>
-                </View>
-              </View>
-
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconBox}>
-                  <Lightbulb size={16} color={COLORS.status.warning} />
-                </View>
-                <View style={styles.featureTextBox}>
-                  <Text style={styles.featureTitle}>Detailed Solutions</Text>
-                  <Text style={styles.featureDesc}>Step-by-step explanations</Text>
-                </View>
-              </View>
-
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconBox}>
-                  <Sparkles size={16} color={COLORS.status.success} />
-                </View>
-                <View style={styles.featureTextBox}>
-                  <Text style={styles.featureTitle}>AI Analysis</Text>
-                  <Text style={styles.featureDesc}>Pinpoint topics that cost marks</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Interactive Live Exam Preview Simulation (matching web ExamPreview) */}
-            <View style={styles.examPreviewCard}>
-              {/* Preview top title bar */}
-              <View style={styles.previewTitleBar}>
-                <Text style={styles.previewTitleText}>Mock Test 01 · Quantitative Aptitude</Text>
-                <View style={styles.previewTimerPill}>
-                  <Clock size={12} color={COLORS.common.white} />
-                  <Text style={styles.previewTimerText}>{formatTimer(previewSeconds)}</Text>
-                </View>
-              </View>
-
-              {/* Sample Question Box */}
-              <View style={styles.previewBody}>
-                <Text style={styles.previewQMeta}>Question 7 of 20 · +1 / −0.25</Text>
-                <Text style={styles.previewQuestion}>
-                  A train 150 m long passes a pole in 15 seconds. What is its speed in km/h?
+                <Text style={[styles.heroTitle, isTablet && styles.heroTitleTablet]}>
+                  Practice on the Real Exam Interface.
+                </Text>
+                <Text style={styles.heroSubtitle}>
+                  Full-length mock tests, previous year papers, and step-by-step solutions with AI insights to help you clear your target cutoff.
                 </Text>
 
-                {/* Selectable Options */}
-                <View style={styles.previewOptionsList}>
-                  {PREVIEW_OPTIONS.map((opt, i) => {
-                    const isSelected = previewSelected === i;
-                    return (
-                      <TouchableOpacity
-                        key={opt}
-                        onPress={() => setPreviewSelected(i)}
-                        activeOpacity={0.8}
-                        style={[
-                          styles.previewOptionItem,
-                          isSelected && styles.previewOptionSelected,
-                        ]}
-                      >
-                        <View
-                          style={[
-                            styles.previewRadio,
-                            isSelected && styles.previewRadioSelected,
-                          ]}
-                        >
-                          {isSelected && <View style={styles.previewRadioDot} />}
-                        </View>
-                        <Text
-                          style={[
-                            styles.previewOptionText,
-                            isSelected && styles.previewOptionTextSelected,
-                          ]}
-                        >
-                          {opt}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                {/* Hero CTAs */}
+                <View style={styles.heroCtaRow}>
+                  <TouchableOpacity
+                    style={styles.primaryCta}
+                    onPress={() => navigation.navigate('CategoriesTab')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.primaryCtaText}>Start a Mock Test</Text>
+                    <ArrowRight size={16} color={COLORS.common.white} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.secondaryCta}
+                    onPress={() => navigation.navigate('SeriesTab')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.secondaryCtaText}>Explore Series</Text>
+                  </TouchableOpacity>
                 </View>
 
-                {/* Mini Question Palette */}
-                <View style={styles.miniPaletteBox}>
-                  <Text style={styles.miniPaletteTitle}>Question Palette</Text>
-                  <View style={styles.miniPaletteGrid}>
-                    {PALETTE_SAMPLE.map((state, i) => {
-                      let bg = COLORS.slate[800];
-                      let textCol = COLORS.slate[300];
-                      if (state === 'ans') {
-                        bg = '#10b981';
-                        textCol = '#ffffff';
-                      } else if (state === 'not_ans') {
-                        bg = '#ef4444';
-                        textCol = '#ffffff';
-                      } else if (state === 'marked') {
-                        bg = '#8b5cf6';
-                        textCol = '#ffffff';
-                      } else if (state === 'current') {
-                        bg = COLORS.brand[500];
-                        textCol = '#ffffff';
-                      }
+                {/* Core Feature Highlights */}
+                <View style={[styles.featureGrid, isTablet && styles.featureGridTablet]}>
+                  <View style={styles.featureItem}>
+                    <View style={styles.featureIconBox}>
+                      <Monitor size={16} color={COLORS.brand[400]} />
+                    </View>
+                    <View style={styles.featureTextBox}>
+                      <Text style={styles.featureTitle}>Real Exam UI</Text>
+                      <Text style={styles.featureDesc}>Exact timer & question palette</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.featureItem}>
+                    <View style={styles.featureIconBox}>
+                      <FileText size={16} color={COLORS.accent.skyLight} />
+                    </View>
+                    <View style={styles.featureTextBox}>
+                      <Text style={styles.featureTitle}>Past Papers</Text>
+                      <Text style={styles.featureDesc}>Actual exam pattern questions</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.featureItem}>
+                    <View style={styles.featureIconBox}>
+                      <Lightbulb size={16} color={COLORS.status.warning} />
+                    </View>
+                    <View style={styles.featureTextBox}>
+                      <Text style={styles.featureTitle}>Detailed Solutions</Text>
+                      <Text style={styles.featureDesc}>Step-by-step explanations</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.featureItem}>
+                    <View style={styles.featureIconBox}>
+                      <Sparkles size={16} color={COLORS.status.success} />
+                    </View>
+                    <View style={styles.featureTextBox}>
+                      <Text style={styles.featureTitle}>AI Analysis</Text>
+                      <Text style={styles.featureDesc}>Pinpoint topics that cost marks</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Right Column: Live Exam Preview Simulation */}
+              <View style={[styles.heroRightCol, isTablet && styles.heroRightColTablet]}>
+                <View style={styles.examPreviewCard}>
+                  {/* Preview top title bar */}
+                  <View style={styles.previewTitleBar}>
+                    <Text style={styles.previewTitleText}>Mock Test 01 · Quantitative Aptitude</Text>
+                    <View style={styles.previewTimerPill}>
+                      <Clock size={12} color={COLORS.common.white} />
+                      <Text style={styles.previewTimerText}>{formatTimer(previewSeconds)}</Text>
+                    </View>
+                  </View>
+
+                  {/* Sample Question Box */}
+                  <View style={styles.previewBody}>
+                    <Text style={styles.previewQMeta}>Question 7 of 20 · +1 / −0.25</Text>
+                    <Text style={styles.previewQuestion}>
+                      A train 150 m long passes a pole in 15 seconds. What is its speed in km/h?
+                    </Text>
+
+                    {/* Selectable Options */}
+                    <View style={styles.previewOptionsList}>
+                      {PREVIEW_OPTIONS.map((opt, i) => {
+                        const isSelected = previewSelected === i;
+                        return (
+                          <TouchableOpacity
+                            key={opt}
+                            onPress={() => setPreviewSelected(i)}
+                            activeOpacity={0.8}
+                            style={[
+                              styles.previewOptionItem,
+                              isSelected && styles.previewOptionSelected,
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.previewRadio,
+                                isSelected && styles.previewRadioSelected,
+                              ]}
+                            >
+                              {isSelected && <View style={styles.previewRadioDot} />}
+                            </View>
+                            <Text
+                              style={[
+                                styles.previewOptionText,
+                                isSelected && styles.previewOptionTextSelected,
+                              ]}
+                            >
+                              {opt}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {/* Mini Question Palette */}
+                    <View style={styles.miniPaletteBox}>
+                      <Text style={styles.miniPaletteTitle}>Question Palette</Text>
+                      <View style={styles.miniPaletteGrid}>
+                        {PALETTE_SAMPLE.map((state, i) => {
+                          let bg = COLORS.slate[800];
+                          let textCol = COLORS.slate[300];
+                          if (state === 'ans') {
+                            bg = '#10b981';
+                            textCol = '#ffffff';
+                          } else if (state === 'not_ans') {
+                            bg = '#ef4444';
+                            textCol = '#ffffff';
+                          } else if (state === 'marked') {
+                            bg = '#8b5cf6';
+                            textCol = '#ffffff';
+                          } else if (state === 'current') {
+                            bg = COLORS.brand[500];
+                            textCol = '#ffffff';
+                          }
+                          return (
+                            <View key={i} style={[styles.miniPaletteCell, { backgroundColor: bg }]}>
+                              <Text style={[styles.miniPaletteCellText, { color: textCol }]}>{i + 1}</Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* AI Insight banner */}
+                  <View style={styles.aiInsightBox}>
+                    <View style={styles.aiBotCircle}>
+                      <Bot size={16} color={COLORS.common.white} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.aiInsightTitle}>Time & Work needs practice</Text>
+                      <Text style={styles.aiInsightSub}>
+                        3 of 8 correct in recent test. Try 10 more practice questions.
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          ) : (
+            /* ================================================================= */
+            /* STUDENT BANNER (For Logged-in Aspirants)                          */
+            /* ================================================================= */
+            <View style={[styles.welcomeBanner, isTablet && styles.welcomeBannerTablet]}>
+              <View style={[styles.welcomeLeftCol, isTablet && styles.welcomeLeftColTablet]}>
+                <View style={styles.welcomeBadge}>
+                  <Sparkles size={12} color={COLORS.brand[400]} />
+                  <Text style={styles.welcomeBadgeText}>ASPIRANT DASHBOARD</Text>
+                </View>
+                <Text style={[styles.welcomeGreeting, isTablet && styles.welcomeGreetingTablet]}>
+                  {greeting}, {userName}!
+                </Text>
+                <Text style={styles.welcomeSubtext}>
+                  {user.targetExam
+                    ? `Preparing for ${user.targetExam}. Keep up your mock test practice and clear your cutoff.`
+                    : 'Pick up where you left off, take full-length mock tests, and keep your streak alive.'}
+                </Text>
+
+                {/* Primary Student Actions */}
+                <View style={styles.bannerActionRow}>
+                  <TouchableOpacity
+                    style={styles.bannerPrimaryBtn}
+                    onPress={() => navigation.navigate('CategoriesTab')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.bannerPrimaryBtnText}>Start a Mock Test</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.bannerSecondaryBtn}
+                    onPress={() => navigation.navigate('SeriesTab')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.bannerSecondaryBtnText}>Browse Series</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={[styles.welcomeRightCol, isTablet && styles.welcomeRightColTablet]}>
+                {/* Weekly Streak Tracker */}
+                <View style={styles.streakCard}>
+                  <View style={styles.streakHeader}>
+                    <View style={styles.streakHeaderLeft}>
+                      <Flame size={16} color="#f59e0b" />
+                      <Text style={styles.streakTitle}>Weekly Streak</Text>
+                    </View>
+                    <Text style={styles.streakBadge}>4 Days Active</Text>
+                  </View>
+
+                  <View style={styles.weekDotsRow}>
+                    {WEEK_DAYS.map((day, idx) => {
+                      const isPastOrToday = idx <= todayIndex;
+                      const isActive = idx === todayIndex || idx === 2 || idx === 4;
                       return (
-                        <View key={i} style={[styles.miniPaletteCell, { backgroundColor: bg }]}>
-                          <Text style={[styles.miniPaletteCellText, { color: textCol }]}>{i + 1}</Text>
+                        <View key={idx} style={styles.weekDayCol}>
+                          <Text style={styles.weekDayLabel}>{day}</Text>
+                          <View
+                            style={[
+                              styles.weekDot,
+                              isActive && styles.weekDotActive,
+                              !isActive && isPastOrToday && styles.weekDotMissed,
+                            ]}
+                          >
+                            {isActive && <Check size={10} color={COLORS.common.white} />}
+                          </View>
                         </View>
                       );
                     })}
                   </View>
                 </View>
-              </View>
 
-              {/* AI Insight banner */}
-              <View style={styles.aiInsightBox}>
-                <View style={styles.aiBotCircle}>
-                  <Bot size={16} color={COLORS.common.white} />
+                {/* Performance Metric Cards */}
+                <View style={styles.metricsRow}>
+                  <View style={styles.metricCard}>
+                    <View style={[styles.metricIconBox, { backgroundColor: 'rgba(94, 67, 243, 0.15)' }]}>
+                      <Target size={18} color={COLORS.brand[400]} />
+                    </View>
+                    <Text style={styles.metricValue}>12</Text>
+                    <Text style={styles.metricLabel}>Tests Taken</Text>
+                  </View>
+
+                  <View style={styles.metricCard}>
+                    <View style={[styles.metricIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                      <CheckCircle size={18} color={COLORS.status.success} />
+                    </View>
+                    <Text style={styles.metricValue}>78.5%</Text>
+                    <Text style={styles.metricLabel}>Accuracy</Text>
+                  </View>
+
+                  <View style={styles.metricCard}>
+                    <View style={[styles.metricIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+                      <Award size={18} color={COLORS.accent.skyLight} />
+                    </View>
+                    <Text style={styles.metricValue}>#142</Text>
+                    <Text style={styles.metricLabel}>All-India Rank</Text>
+                  </View>
+                </View>
+
+                {/* Quick Access Strip */}
+                <View style={styles.quickAccessRow}>
+                  <TouchableOpacity
+                    style={styles.quickAccessPill}
+                    onPress={() => navigation.navigate('AttemptHistory')}
+                    activeOpacity={0.7}
+                  >
+                    <FileText size={13} color={COLORS.brand[400]} />
+                    <Text style={styles.quickAccessText}>Past Attempts</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.quickAccessPill}
+                    onPress={() => navigation.navigate('OrdersPayments')}
+                    activeOpacity={0.7}
+                  >
+                    <Receipt size={13} color={COLORS.status.success} />
+                    <Text style={styles.quickAccessText}>My Passes</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.quickAccessPill}
+                    onPress={() => navigation.navigate('AccountSettings')}
+                    activeOpacity={0.7}
+                  >
+                    <User size={13} color="#3b82f6" />
+                    <Text style={styles.quickAccessText}>Settings</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* ================================================================= */}
+          {/* CONTINUE CARD (If user has in-progress attempt)                   */}
+          {/* ================================================================= */}
+          {continueAttempt && (
+            <View style={styles.continueCard}>
+              <View style={styles.continueCardLeft}>
+                <View style={styles.continueIconBox}>
+                  <Clock size={18} color={COLORS.brand[400]} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.aiInsightTitle}>Time & Work needs practice</Text>
-                  <Text style={styles.aiInsightSub}>
-                    3 of 8 correct in recent test. Try 10 more practice questions.
+                  <Text style={styles.continueTag}>IN-PROGRESS MOCK TEST</Text>
+                  <Text style={styles.continueTitle} numberOfLines={1}>
+                    {continueAttempt.testTitle || continueAttempt.testName || 'Full-Length Mock Examination'}
                   </Text>
                 </View>
               </View>
+              <TouchableOpacity
+                style={styles.continueBtn}
+                onPress={() =>
+                  navigation.navigate('TestAttempt', {
+                    test: {
+                      id: continueAttempt.testId || continueAttempt.id,
+                      testId: continueAttempt.testId || continueAttempt.id,
+                      attemptId: continueAttempt.attemptId || continueAttempt.id,
+                      name: continueAttempt.testTitle || continueAttempt.testName,
+                    },
+                  })
+                }
+                activeOpacity={0.8}
+              >
+                <Play size={14} color={COLORS.common.white} fill={COLORS.common.white} />
+                <Text style={styles.continueBtnText}>Resume</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* ================================================================= */}
+          {/* 2. EXAM CATEGORIES GRID / STRIP                                   */}
+          {/* ================================================================= */}
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>Exam Categories</Text>
+              <Text style={styles.sectionSubtitle}>Browse by target exam board</Text>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('CategoriesTab')} activeOpacity={0.7}>
+              <Text style={styles.viewAllText}>View All &rarr;</Text>
+            </TouchableOpacity>
+          </View>
+
+          {isTablet ? (
+            /* Multi-column grid on Tablet */
+            <View style={styles.categoriesGridTablet}>
+              {categories.slice(0, 6).map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={styles.categoryCardTablet}
+                  onPress={() => navigation.navigate('SeriesList', { category: cat })}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.categoryCardTabletLeft}>
+                    <View style={styles.categoryIconCircle}>
+                      <BookOpen size={16} color={COLORS.brand[400]} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.categoryCardTitle} numberOfLines={1}>
+                        {cat.name}
+                      </Text>
+                      <Text style={styles.categoryCardSub}>Mocks & Past Papers</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={16} color={COLORS.slate[500]} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            /* Horizontal chips on Mobile */
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesRow}
+            >
+              {categories.slice(0, 6).map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={styles.categoryChip}
+                  onPress={() => navigation.navigate('SeriesList', { category: cat })}
+                  activeOpacity={0.8}
+                >
+                  <BookOpen size={14} color={COLORS.brand[400]} />
+                  <Text style={styles.categoryChipText}>{cat.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* ================================================================= */}
+          {/* 3. TRENDING TEST SERIES                                          */}
+          {/* ================================================================= */}
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>Popular Test Series</Text>
+              <Text style={styles.sectionSubtitle}>Comprehensive exam packages</Text>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('SeriesTab')} activeOpacity={0.7}>
+              <Text style={styles.viewAllText}>Browse All &rarr;</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.seriesContainer, isTablet && styles.seriesContainerTablet]}>
+            {popularSeries.slice(0, isTablet ? 4 : 2).map((series) => (
+              <View key={series.id} style={isTablet ? styles.seriesCardColTablet : undefined}>
+                <SeriesCard
+                  series={series}
+                  onPress={() => navigation.navigate('SeriesDetail', { seriesId: series.id, series })}
+                />
+              </View>
+            ))}
+          </View>
+
+          {/* ================================================================= */}
+          {/* 4. TODAY'S FEATURED MOCKS                                        */}
+          {/* ================================================================= */}
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>Today's Featured Mocks</Text>
+              <Text style={styles.sectionSubtitle}>Handpicked by exam mentors</Text>
             </View>
           </View>
-        ) : (
-          /* ================================================================= */
-          /* STUDENT BANNER (For Logged-in Aspirants)                          */
-          /* ================================================================= */
-          <View style={styles.welcomeBanner}>
-            <View style={styles.welcomeBadge}>
-              <Sparkles size={12} color={COLORS.brand[400]} />
-              <Text style={styles.welcomeBadgeText}>ASPIRANT DASHBOARD</Text>
+
+          <View style={[styles.testsContainer, isTablet && styles.testsContainerTablet]}>
+            {featuredTests.slice(0, isTablet ? 4 : 2).map((test) => (
+              <View key={test.id} style={isTablet ? styles.testCardColTablet : undefined}>
+                <TestCard
+                  test={test}
+                  onStart={(selectedTest) =>
+                    navigation.navigate('TestInstructions', { test: selectedTest })
+                  }
+                />
+              </View>
+            ))}
+          </View>
+
+          {/* ================================================================= */}
+          {/* 5. WHY CHOOSE CLEARIT (Matches ValueStrip.jsx)                   */}
+          {/* ================================================================= */}
+          <View style={styles.valueSection}>
+            <View style={styles.valueHeaderRow}>
+              <ShieldCheck size={20} color={COLORS.brand[400]} />
+              <Text style={styles.valueSectionTitle}>Why Choose ClearIt?</Text>
             </View>
-            <Text style={styles.welcomeGreeting}>Welcome back, {userName}!</Text>
-            <Text style={styles.welcomeSubtext}>
-              Pick up where you left off, take full-length mock tests, and keep your streak alive.
+            <Text style={styles.valueSectionSub}>Everything you need to crack your exam, in one place.</Text>
+
+            <View style={[styles.valueGrid, isTablet && styles.valueGridTablet]}>
+              <View style={[styles.valueCard, isTablet && styles.valueCardTablet]}>
+                <View style={[styles.valueIconBox, { backgroundColor: 'rgba(94, 67, 243, 0.15)' }]}>
+                  <Monitor size={18} color={COLORS.brand[400]} />
+                </View>
+                <Text style={styles.valueTitle}>Exam-Like Interface</Text>
+                <Text style={styles.valueDesc}>Practice with real test timer, palette, and marking scheme.</Text>
+              </View>
+
+              <View style={[styles.valueCard, isTablet && styles.valueCardTablet]}>
+                <View style={[styles.valueIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                  <BarChart2 size={18} color={COLORS.status.success} />
+                </View>
+                <Text style={styles.valueTitle}>AI-Powered Insights</Text>
+                <Text style={styles.valueDesc}>Detailed section analytics and personalized recommendations.</Text>
+              </View>
+
+              <View style={[styles.valueCard, isTablet && styles.valueCardTablet]}>
+                <View style={[styles.valueIconBox, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
+                  <FileText size={18} color="#f87171" />
+                </View>
+                <Text style={styles.valueTitle}>Extensive Question Bank</Text>
+                <Text style={styles.valueDesc}>Topic mocks, full tests, and curated previous year papers.</Text>
+              </View>
+
+              <View style={[styles.valueCard, isTablet && styles.valueCardTablet]}>
+                <View style={[styles.valueIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                  <Lightbulb size={18} color={COLORS.status.warning} />
+                </View>
+                <Text style={styles.valueTitle}>Detailed Solutions</Text>
+                <Text style={styles.valueDesc}>Step-by-step explanations and shortcut methods for every question.</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* ================================================================= */}
+          {/* 6. HOW IT WORKS (Matches HowItWorks.jsx)                         */}
+          {/* ================================================================= */}
+          <View style={styles.howSection}>
+            <Text style={styles.howTitle}>How It Works</Text>
+            <Text style={styles.howSub}>Start preparing in four simple steps.</Text>
+
+            <View style={[styles.stepsList, isTablet && styles.stepsListTablet]}>
+              <View style={[styles.stepItem, isTablet && styles.stepItemTablet]}>
+                <View style={styles.stepNumBox}>
+                  <Text style={styles.stepNumText}>1</Text>
+                </View>
+                <View style={styles.stepTextBox}>
+                  <Text style={styles.stepItemTitle}>Choose your exam</Text>
+                  <Text style={styles.stepItemDesc}>Pick from SSC, Banking, Railways, Defense, or State exams.</Text>
+                </View>
+              </View>
+
+              <View style={[styles.stepItem, isTablet && styles.stepItemTablet]}>
+                <View style={styles.stepNumBox}>
+                  <Text style={styles.stepNumText}>2</Text>
+                </View>
+                <View style={styles.stepTextBox}>
+                  <Text style={styles.stepItemTitle}>Take mock tests</Text>
+                  <Text style={styles.stepItemDesc}>Practice on the real exam interface with timed conditions.</Text>
+                </View>
+              </View>
+
+              <View style={[styles.stepItem, isTablet && styles.stepItemTablet]}>
+                <View style={styles.stepNumBox}>
+                  <Text style={styles.stepNumText}>3</Text>
+                </View>
+                <View style={styles.stepTextBox}>
+                  <Text style={styles.stepItemTitle}>Analyze performance</Text>
+                  <Text style={styles.stepItemDesc}>Review question-level accuracy and topic-wise weak spots.</Text>
+                </View>
+              </View>
+
+              <View style={[styles.stepItem, isTablet && styles.stepItemTablet]}>
+                <View style={styles.stepNumBox}>
+                  <Text style={styles.stepNumText}>4</Text>
+                </View>
+                <View style={styles.stepTextBox}>
+                  <Text style={styles.stepItemTitle}>Improve and repeat</Text>
+                  <Text style={styles.stepItemDesc}>Focus on weak topics and boost your All-India rank.</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* ================================================================= */}
+          {/* 7. STATS STRIP (Matches StatsStrip.jsx)                          */}
+          {/* ================================================================= */}
+          <View style={[styles.statsStrip, isTablet && styles.statsStripTablet]}>
+            <View style={styles.statBox}>
+              <Users size={22} color={COLORS.brand[400]} />
+              <Text style={styles.statValue}>100K+</Text>
+              <Text style={styles.statLabel}>Aspirants</Text>
+            </View>
+
+            <View style={styles.statBox}>
+              <FileText size={22} color={COLORS.accent.skyLight} />
+              <Text style={styles.statValue}>5K+</Text>
+              <Text style={styles.statLabel}>Mock Tests</Text>
+            </View>
+
+            <View style={styles.statBox}>
+              <ThumbsUp size={22} color={COLORS.status.success} />
+              <Text style={styles.statValue}>95%</Text>
+              <Text style={styles.statLabel}>Recommend</Text>
+            </View>
+
+            <View style={styles.statBox}>
+              <Star size={22} color="#fbbf24" fill="#fbbf24" />
+              <Text style={styles.statValue}>4.8/5</Text>
+              <Text style={styles.statLabel}>Rating</Text>
+            </View>
+          </View>
+
+          {/* ================================================================= */}
+          {/* 8. FAQ ACCORDION (Matches HomeFaq.jsx)                            */}
+          {/* ================================================================= */}
+          <View style={styles.faqSection}>
+            <View style={styles.faqBadge}>
+              <Sparkles size={11} color={COLORS.brand[400]} />
+              <Text style={styles.faqBadgeText}>QUICK ANSWERS</Text>
+            </View>
+            <Text style={styles.faqTitle}>Frequently Asked Questions</Text>
+            <Text style={styles.faqSubtitle}>Helpful answers about ClearIt exam practice.</Text>
+
+            <View style={styles.faqList}>
+              {FAQS.map((faq, index) => {
+                const isOpen = expandedFaq === index;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => setExpandedFaq(isOpen ? null : index)}
+                    activeOpacity={0.8}
+                    style={styles.faqCard}
+                  >
+                    <View style={styles.faqQuestionRow}>
+                      <Text style={styles.faqIndexText}>{String(index + 1).padStart(2, '0')}</Text>
+                      <Text style={styles.faqQuestionText}>{faq.q}</Text>
+                      {isOpen ? (
+                        <ChevronUp size={18} color={COLORS.brand[400]} />
+                      ) : (
+                        <ChevronDown size={18} color={COLORS.slate[400]} />
+                      )}
+                    </View>
+
+                    {isOpen && (
+                      <View style={styles.faqAnswerBox}>
+                        <Text style={styles.faqAnswerText}>{faq.a}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* ================================================================= */}
+          {/* 9. BOTTOM JOIN CTA BANNER (Matches JoinBanner.jsx)               */}
+          {/* ================================================================= */}
+          <View style={styles.bottomJoinCard}>
+            <Text style={styles.bottomJoinTitle}>Ready to Clear Your Cutoff?</Text>
+            <Text style={styles.bottomJoinDesc}>
+              Join thousands of serious aspirants preparing smarter with ClearIt today.
             </Text>
-
-            {/* Performance Metric Cards */}
-            <View style={styles.metricsRow}>
-              <View style={styles.metricCard}>
-                <View style={[styles.metricIconBox, { backgroundColor: 'rgba(94, 67, 243, 0.15)' }]}>
-                  <Target size={18} color={COLORS.brand[400]} />
-                </View>
-                <Text style={styles.metricValue}>12</Text>
-                <Text style={styles.metricLabel}>Tests Taken</Text>
-              </View>
-
-              <View style={styles.metricCard}>
-                <View style={[styles.metricIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                  <CheckCircle size={18} color={COLORS.status.success} />
-                </View>
-                <Text style={styles.metricValue}>78.5%</Text>
-                <Text style={styles.metricLabel}>Accuracy</Text>
-              </View>
-
-              <View style={styles.metricCard}>
-                <View style={[styles.metricIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-                  <Award size={18} color={COLORS.accent.skyLight} />
-                </View>
-                <Text style={styles.metricValue}>#142</Text>
-                <Text style={styles.metricLabel}>All-India Rank</Text>
-              </View>
-            </View>
-
-            {/* Quick Access Strip */}
-            <View style={styles.quickAccessRow}>
-              <TouchableOpacity
-                style={styles.quickAccessPill}
-                onPress={() => navigation.navigate('AttemptHistory')}
-                activeOpacity={0.7}
-              >
-                <FileText size={13} color={COLORS.brand[400]} />
-                <Text style={styles.quickAccessText}>Past Attempts</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickAccessPill}
-                onPress={() => navigation.navigate('OrdersPayments')}
-                activeOpacity={0.7}
-              >
-                <Receipt size={13} color={COLORS.status.success} />
-                <Text style={styles.quickAccessText}>My Passes</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickAccessPill}
-                onPress={() => navigation.navigate('ProfileTab')}
-                activeOpacity={0.7}
-              >
-                <User size={13} color="#3b82f6" />
-                <Text style={styles.quickAccessText}>My Profile</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* ================================================================= */}
-        {/* 2. EXAM CATEGORIES GRID / STRIP                                   */}
-        {/* ================================================================= */}
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionTitle}>Exam Categories</Text>
-            <Text style={styles.sectionSubtitle}>Browse by target exam board</Text>
-          </View>
-          <TouchableOpacity onPress={() => navigation.navigate('CategoriesTab')} activeOpacity={0.7}>
-            <Text style={styles.viewAllText}>View All &rarr;</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesRow}
-        >
-          {categories.slice(0, 6).map((cat) => (
             <TouchableOpacity
-              key={cat.id}
-              style={styles.categoryChip}
-              onPress={() => navigation.navigate('SeriesList', { category: cat })}
+              style={styles.bottomJoinBtn}
+              onPress={() => navigation.navigate('SeriesTab')}
               activeOpacity={0.8}
             >
-              <BookOpen size={14} color={COLORS.brand[400]} />
-              <Text style={styles.categoryChipText}>{cat.name}</Text>
+              <Text style={styles.bottomJoinBtnText}>Explore All Test Series &rarr;</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* ================================================================= */}
-        {/* 3. TRENDING TEST SERIES                                          */}
-        {/* ================================================================= */}
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionTitle}>Popular Test Series</Text>
-            <Text style={styles.sectionSubtitle}>Comprehensive exam packages</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('SeriesTab')} activeOpacity={0.7}>
-            <Text style={styles.viewAllText}>Browse All &rarr;</Text>
-          </TouchableOpacity>
-        </View>
-
-        {popularSeries.slice(0, 2).map((series) => (
-          <SeriesCard
-            key={series.id}
-            series={series}
-            onPress={() => navigation.navigate('SeriesDetail', { seriesId: series.id, series })}
-          />
-        ))}
-
-        {/* ================================================================= */}
-        {/* 4. TODAY'S FEATURED MOCKS                                        */}
-        {/* ================================================================= */}
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionTitle}>Today's Featured Mocks</Text>
-            <Text style={styles.sectionSubtitle}>Handpicked by exam mentors</Text>
-          </View>
-        </View>
-
-        {featuredTests.slice(0, 2).map((test) => (
-          <TestCard
-            key={test.id}
-            test={test}
-            onStart={(selectedTest) =>
-              navigation.navigate('TestInstructions', { test: selectedTest })
-            }
-          />
-        ))}
-
-        {/* ================================================================= */}
-        {/* 5. WHY CHOOSE CLEARIT (Matches ValueStrip.jsx)                   */}
-        {/* ================================================================= */}
-        <View style={styles.valueSection}>
-          <View style={styles.valueHeaderRow}>
-            <ShieldCheck size={20} color={COLORS.brand[400]} />
-            <Text style={styles.valueSectionTitle}>Why Choose ClearIt?</Text>
-          </View>
-          <Text style={styles.valueSectionSub}>Everything you need to crack your exam, in one place.</Text>
-
-          <View style={styles.valueGrid}>
-            <View style={styles.valueCard}>
-              <View style={[styles.valueIconBox, { backgroundColor: 'rgba(94, 67, 243, 0.15)' }]}>
-                <Monitor size={18} color={COLORS.brand[400]} />
-              </View>
-              <Text style={styles.valueTitle}>Exam-Like Interface</Text>
-              <Text style={styles.valueDesc}>Practice with real test timer, palette, and marking scheme.</Text>
-            </View>
-
-            <View style={styles.valueCard}>
-              <View style={[styles.valueIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                <BarChart2 size={18} color={COLORS.status.success} />
-              </View>
-              <Text style={styles.valueTitle}>AI-Powered Insights</Text>
-              <Text style={styles.valueDesc}>Detailed section analytics and personalized recommendations.</Text>
-            </View>
-
-            <View style={styles.valueCard}>
-              <View style={[styles.valueIconBox, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
-                <FileText size={18} color="#f87171" />
-              </View>
-              <Text style={styles.valueTitle}>Extensive Question Bank</Text>
-              <Text style={styles.valueDesc}>Topic mocks, full tests, and curated previous year papers.</Text>
-            </View>
-
-            <View style={styles.valueCard}>
-              <View style={[styles.valueIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-                <Lightbulb size={18} color={COLORS.status.warning} />
-              </View>
-              <Text style={styles.valueTitle}>Detailed Solutions</Text>
-              <Text style={styles.valueDesc}>Step-by-step explanations and shortcut methods for every question.</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* ================================================================= */}
-        {/* 6. HOW IT WORKS (Matches HowItWorks.jsx)                         */}
-        {/* ================================================================= */}
-        <View style={styles.howSection}>
-          <Text style={styles.howTitle}>How It Works</Text>
-          <Text style={styles.howSub}>Start preparing in four simple steps.</Text>
-
-          <View style={styles.stepsList}>
-            <View style={styles.stepItem}>
-              <View style={styles.stepNumBox}>
-                <Text style={styles.stepNumText}>1</Text>
-              </View>
-              <View style={styles.stepTextBox}>
-                <Text style={styles.stepItemTitle}>Choose your exam</Text>
-                <Text style={styles.stepItemDesc}>Pick from SSC, Banking, Railways, Defense, or State exams.</Text>
-              </View>
-            </View>
-
-            <View style={styles.stepItem}>
-              <View style={styles.stepNumBox}>
-                <Text style={styles.stepNumText}>2</Text>
-              </View>
-              <View style={styles.stepTextBox}>
-                <Text style={styles.stepItemTitle}>Take mock tests</Text>
-                <Text style={styles.stepItemDesc}>Practice on the real exam interface with timed conditions.</Text>
-              </View>
-            </View>
-
-            <View style={styles.stepItem}>
-              <View style={styles.stepNumBox}>
-                <Text style={styles.stepNumText}>3</Text>
-              </View>
-              <View style={styles.stepTextBox}>
-                <Text style={styles.stepItemTitle}>Analyze performance</Text>
-                <Text style={styles.stepItemDesc}>Review question-level accuracy and topic-wise weak spots.</Text>
-              </View>
-            </View>
-
-            <View style={styles.stepItem}>
-              <View style={styles.stepNumBox}>
-                <Text style={styles.stepNumText}>4</Text>
-              </View>
-              <View style={styles.stepTextBox}>
-                <Text style={styles.stepItemTitle}>Improve and repeat</Text>
-                <Text style={styles.stepItemDesc}>Focus on weak topics and boost your All-India rank.</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* ================================================================= */}
-        {/* 7. STATS STRIP (Matches StatsStrip.jsx)                          */}
-        {/* ================================================================= */}
-        <View style={styles.statsStrip}>
-          <View style={styles.statBox}>
-            <Users size={20} color={COLORS.brand[400]} />
-            <Text style={styles.statValue}>100K+</Text>
-            <Text style={styles.statLabel}>Aspirants</Text>
-          </View>
-
-          <View style={styles.statBox}>
-            <FileText size={20} color={COLORS.accent.skyLight} />
-            <Text style={styles.statValue}>5K+</Text>
-            <Text style={styles.statLabel}>Mock Tests</Text>
-          </View>
-
-          <View style={styles.statBox}>
-            <ThumbsUp size={20} color={COLORS.status.success} />
-            <Text style={styles.statValue}>95%</Text>
-            <Text style={styles.statLabel}>Recommend</Text>
-          </View>
-
-          <View style={styles.statBox}>
-            <Star size={20} color="#fbbf24" fill="#fbbf24" />
-            <Text style={styles.statValue}>4.8/5</Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </View>
-        </View>
-
-        {/* ================================================================= */}
-        {/* 8. FAQ ACCORDION (Matches HomeFaq.jsx)                            */}
-        {/* ================================================================= */}
-        <View style={styles.faqSection}>
-          <View style={styles.faqBadge}>
-            <Sparkles size={11} color={COLORS.brand[400]} />
-            <Text style={styles.faqBadgeText}>QUICK ANSWERS</Text>
-          </View>
-          <Text style={styles.faqTitle}>Frequently Asked Questions</Text>
-          <Text style={styles.faqSubtitle}>Helpful answers about ClearIt exam practice.</Text>
-
-          <View style={styles.faqList}>
-            {FAQS.map((faq, index) => {
-              const isOpen = expandedFaq === index;
-              return (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => setExpandedFaq(isOpen ? null : index)}
-                  activeOpacity={0.8}
-                  style={styles.faqCard}
-                >
-                  <View style={styles.faqQuestionRow}>
-                    <Text style={styles.faqIndexText}>{String(index + 1).padStart(2, '0')}</Text>
-                    <Text style={styles.faqQuestionText}>{faq.q}</Text>
-                    {isOpen ? (
-                      <ChevronUp size={18} color={COLORS.brand[400]} />
-                    ) : (
-                      <ChevronDown size={18} color={COLORS.slate[400]} />
-                    )}
-                  </View>
-
-                  {isOpen && (
-                    <View style={styles.faqAnswerBox}>
-                      <Text style={styles.faqAnswerText}>{faq.a}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* ================================================================= */}
-        {/* 9. BOTTOM JOIN CTA BANNER (Matches JoinBanner.jsx)               */}
-        {/* ================================================================= */}
-        <View style={styles.bottomJoinCard}>
-          <Text style={styles.bottomJoinTitle}>Ready to Clear Your Cutoff?</Text>
-          <Text style={styles.bottomJoinDesc}>
-            Join thousands of serious aspirants preparing smarter with ClearIt today.
-          </Text>
-          <TouchableOpacity
-            style={styles.bottomJoinBtn}
-            onPress={() => navigation.navigate('SeriesTab')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.bottomJoinBtnText}>Explore All Test Series &rarr;</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -655,20 +853,20 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.slate[900],
     backgroundColor: COLORS.slate[950],
   },
-  avatarButton: {
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  themeToggleBtn: {
     width: 38,
     height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.brand[600],
+    borderRadius: 12,
+    backgroundColor: COLORS.slate[900],
+    borderWidth: 1,
+    borderColor: COLORS.slate[800],
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.brand[400],
-  },
-  avatarText: {
-    color: COLORS.common.white,
-    fontWeight: '800',
-    fontSize: 16,
   },
   signInPill: {
     flexDirection: 'row',
@@ -685,8 +883,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   scrollContent: {
-    padding: 18,
+    padding: 16,
     paddingBottom: 48,
+  },
+  scrollContentTablet: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  mainContainer: {
+    width: '100%',
+  },
+  mainContainerTablet: {
+    maxWidth: 1100,
+    alignSelf: 'center',
   },
 
   /* Hero Section */
@@ -697,6 +906,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.slate[800],
     marginBottom: 24,
+  },
+  heroSectionTablet: {
+    flexDirection: 'row',
+    padding: 28,
+    gap: 28,
+    alignItems: 'center',
+  },
+  heroLeftCol: {
+    flex: 1,
+  },
+  heroLeftColTablet: {
+    flex: 1.1,
+  },
+  heroRightCol: {
+    marginTop: 20,
+  },
+  heroRightColTablet: {
+    flex: 0.9,
+    marginTop: 0,
   },
   heroBadge: {
     flexDirection: 'row',
@@ -723,6 +951,10 @@ const styles = StyleSheet.create({
     color: COLORS.common.white,
     lineHeight: 32,
     letterSpacing: -0.3,
+  },
+  heroTitleTablet: {
+    fontSize: 32,
+    lineHeight: 40,
   },
   heroSubtitle: {
     fontSize: 13,
@@ -770,7 +1002,12 @@ const styles = StyleSheet.create({
   /* Feature Grid */
   featureGrid: {
     gap: 10,
-    marginBottom: 20,
+    marginBottom: 10,
+  },
+  featureGridTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
   },
   featureItem: {
     flexDirection: 'row',
@@ -781,6 +1018,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderWidth: 1,
     borderColor: COLORS.slate[800],
+    minWidth: 180,
+    flex: 1,
   },
   featureIconBox: {
     width: 34,
@@ -904,7 +1143,7 @@ const styles = StyleSheet.create({
   },
   miniPaletteBox: {
     borderTopWidth: 1,
-    borderTopColor: COLORS.slate[850] || COLORS.slate[800],
+    borderTopColor: COLORS.slate[800],
     paddingTop: 10,
   },
   miniPaletteTitle: {
@@ -962,11 +1201,29 @@ const styles = StyleSheet.create({
   /* Logged-in Welcome Banner */
   welcomeBanner: {
     backgroundColor: COLORS.slate[900],
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 20,
     borderWidth: 1,
     borderColor: COLORS.slate[800],
     marginBottom: 20,
+  },
+  welcomeBannerTablet: {
+    flexDirection: 'row',
+    padding: 26,
+    gap: 28,
+  },
+  welcomeLeftCol: {
+    flex: 1,
+  },
+  welcomeLeftColTablet: {
+    flex: 1.1,
+  },
+  welcomeRightCol: {
+    marginTop: 18,
+  },
+  welcomeRightColTablet: {
+    flex: 1,
+    marginTop: 0,
   },
   welcomeBadge: {
     flexDirection: 'row',
@@ -992,16 +1249,108 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.common.white,
   },
+  welcomeGreetingTablet: {
+    fontSize: 28,
+  },
   welcomeSubtext: {
     fontSize: 13,
     color: COLORS.slate[400],
-    marginTop: 4,
-    lineHeight: 18,
+    marginTop: 6,
+    lineHeight: 20,
   },
-  metricsRow: {
+  bannerActionRow: {
     flexDirection: 'row',
     gap: 10,
     marginTop: 18,
+  },
+  bannerPrimaryBtn: {
+    backgroundColor: COLORS.brand[600],
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  bannerPrimaryBtnText: {
+    color: COLORS.common.white,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  bannerSecondaryBtn: {
+    backgroundColor: COLORS.slate[800],
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.slate[700],
+  },
+  bannerSecondaryBtnText: {
+    color: COLORS.slate[200],
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  /* Weekly Streak Card */
+  streakCard: {
+    backgroundColor: COLORS.slate[950],
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.slate[800],
+    marginBottom: 12,
+  },
+  streakHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  streakHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  streakTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.common.white,
+  },
+  streakBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#f59e0b',
+  },
+  weekDotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  weekDayCol: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  weekDayLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.slate[400],
+  },
+  weekDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.slate[800],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  weekDotActive: {
+    backgroundColor: COLORS.status.success,
+  },
+  weekDotMissed: {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+  },
+
+  /* Metrics */
+  metricsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
   },
   metricCard: {
     flex: 1,
@@ -1029,6 +1378,84 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.slate[400],
     marginTop: 2,
+  },
+  quickAccessRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  quickAccessPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.slate[950],
+    borderWidth: 1,
+    borderColor: COLORS.slate[800],
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  quickAccessText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.slate[300],
+  },
+
+  /* Continue Card */
+  continueCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(94, 67, 243, 0.12)',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(94, 67, 243, 0.35)',
+    marginBottom: 20,
+    gap: 12,
+  },
+  continueCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  continueIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: COLORS.slate[900],
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(94, 67, 243, 0.3)',
+  },
+  continueTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.brand[400],
+    letterSpacing: 0.5,
+  },
+  continueTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.common.white,
+    marginTop: 2,
+  },
+  continueBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.brand[600],
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  continueBtnText: {
+    color: COLORS.common.white,
+    fontSize: 12,
+    fontWeight: '700',
   },
 
   /* Section Headers */
@@ -1075,11 +1502,79 @@ const styles = StyleSheet.create({
     color: COLORS.slate[200],
   },
 
+  /* Tablet Categories Grid */
+  categoriesGridTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 16,
+  },
+  categoryCardTablet: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.slate[900],
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.slate[800],
+    width: '31.5%',
+    minWidth: 220,
+  },
+  categoryCardTabletLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  categoryIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: COLORS.slate[800],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.common.white,
+  },
+  categoryCardSub: {
+    fontSize: 10,
+    color: COLORS.slate[400],
+    marginTop: 2,
+  },
+
+  /* Series & Tests Grids */
+  seriesContainer: {
+    gap: 12,
+  },
+  seriesContainerTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  seriesCardColTablet: {
+    width: '48.5%',
+  },
+  testsContainer: {
+    gap: 12,
+  },
+  testsContainerTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  testCardColTablet: {
+    width: '48.5%',
+  },
+
   /* Value Section (Why Choose ClearIt) */
   valueSection: {
     backgroundColor: COLORS.slate[900],
     borderRadius: 22,
-    padding: 18,
+    padding: 20,
     borderWidth: 1,
     borderColor: COLORS.slate[800],
     marginTop: 14,
@@ -1091,7 +1586,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   valueSectionTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '800',
     color: COLORS.common.white,
   },
@@ -1104,12 +1599,19 @@ const styles = StyleSheet.create({
   valueGrid: {
     gap: 10,
   },
+  valueGridTablet: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   valueCard: {
     backgroundColor: COLORS.slate[950],
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
     borderColor: COLORS.slate[800],
+  },
+  valueCardTablet: {
+    flex: 1,
   },
   valueIconBox: {
     width: 32,
@@ -1135,7 +1637,7 @@ const styles = StyleSheet.create({
   howSection: {
     backgroundColor: COLORS.slate[900],
     borderRadius: 22,
-    padding: 18,
+    padding: 20,
     borderWidth: 1,
     borderColor: COLORS.slate[800],
     marginBottom: 20,
@@ -1154,10 +1656,24 @@ const styles = StyleSheet.create({
   stepsList: {
     gap: 14,
   },
+  stepsListTablet: {
+    flexDirection: 'row',
+    gap: 14,
+  },
   stepItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
+  },
+  stepItemTablet: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    backgroundColor: COLORS.slate[950],
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.slate[800],
   },
   stepNumBox: {
     width: 28,
@@ -1166,7 +1682,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brand[600],
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 2,
+    marginBottom: 8,
   },
   stepNumText: {
     color: COLORS.common.white,
@@ -1194,11 +1710,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: COLORS.slate[900],
     borderRadius: 18,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: COLORS.slate[800],
     marginBottom: 20,
+  },
+  statsStripTablet: {
+    paddingVertical: 24,
+    paddingHorizontal: 24,
   },
   statBox: {
     flex: 1,
@@ -1206,13 +1726,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statValue: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     color: COLORS.common.white,
     marginTop: 4,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
     color: COLORS.slate[400],
   },
@@ -1221,7 +1741,7 @@ const styles = StyleSheet.create({
   faqSection: {
     backgroundColor: COLORS.slate[900],
     borderRadius: 22,
-    padding: 18,
+    padding: 20,
     borderWidth: 1,
     borderColor: COLORS.slate[800],
     marginBottom: 20,
@@ -1244,7 +1764,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   faqTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '800',
     color: COLORS.common.white,
   },
@@ -1285,7 +1805,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: COLORS.slate[850] || COLORS.slate[800],
+    borderTopColor: COLORS.slate[800],
   },
   faqAnswerText: {
     fontSize: 12,
@@ -1299,57 +1819,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(94, 67, 243, 0.35)',
     borderRadius: 22,
-    padding: 20,
+    padding: 24,
     alignItems: 'center',
     marginBottom: 10,
   },
   bottomJoinTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '800',
     color: COLORS.common.white,
     textAlign: 'center',
   },
   bottomJoinDesc: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.slate[300],
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 20,
     marginTop: 6,
     marginBottom: 16,
-    paddingHorizontal: 8,
+    maxWidth: 600,
   },
   bottomJoinBtn: {
     backgroundColor: COLORS.brand[600],
     borderRadius: 14,
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
   },
   bottomJoinBtnText: {
     color: COLORS.common.white,
     fontWeight: '700',
     fontSize: 13,
-  },
-  quickAccessRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 14,
-  },
-  quickAccessPill: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: COLORS.slate[900],
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    paddingVertical: 9,
-    borderRadius: 10,
-  },
-  quickAccessText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.slate[300],
   },
 });
 

@@ -17,6 +17,8 @@ import ExamHeader from '../../components/attempt/ExamHeader';
 import QuestionViewer from '../../components/attempt/QuestionViewer';
 import QuestionPaletteModal from '../../components/attempt/QuestionPaletteModal';
 import SubmitConfirmModal from '../../components/attempt/SubmitConfirmModal';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import * as ScreenCapture from 'expo-screen-capture';
 
 import { COLORS } from '../../constants/theme';
 import {
@@ -57,6 +59,30 @@ export function TestAttemptScreen({ route, navigation }) {
   useEffect(() => {
     dispatch(initLocalExam(test));
   }, [dispatch, test]);
+
+  // Lock to landscape & block screenshots during examination (restore on unmount)
+  useEffect(() => {
+    async function activateExamSecurityAndOrientation() {
+      try {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      } catch (e) {
+        console.warn('Could not lock landscape orientation:', e?.message);
+      }
+
+      try {
+        await ScreenCapture.preventScreenCaptureAsync();
+      } catch (e) {
+        console.warn('Could not prevent screen capture:', e?.message);
+      }
+    }
+
+    activateExamSecurityAndOrientation();
+
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+      ScreenCapture.allowScreenCaptureAsync().catch(() => {});
+    };
+  }, []);
 
   // Real-time Countdown Timer Interval
   useEffect(() => {
