@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home, Layers, BookOpen, User } from 'lucide-react-native';
@@ -9,6 +9,8 @@ import CategoriesScreen from '../screens/catalog/CategoriesScreen';
 import SeriesListScreen from '../screens/catalog/SeriesListScreen';
 import SeriesDetailScreen from '../screens/catalog/SeriesDetailScreen';
 import TestInstructionsScreen from '../screens/tests/TestInstructionsScreen';
+import TestAttemptScreen from '../screens/attempt/TestAttemptScreen';
+import TestResultScreen from '../screens/attempt/TestResultScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
 import { COLORS } from '../constants/theme';
@@ -76,6 +78,16 @@ export function AppNavigator() {
       <Stack.Screen name="SeriesList" component={SeriesListScreen} />
       <Stack.Screen name="SeriesDetail" component={SeriesDetailScreen} />
       <Stack.Screen name="TestInstructions" component={TestInstructionsScreen} />
+      <Stack.Screen
+        name="TestAttempt"
+        component={TestAttemptScreen}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="TestResult"
+        component={TestResultScreen}
+        options={{ gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }
