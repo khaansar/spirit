@@ -1,7 +1,51 @@
 import apiClient from './client';
 
+export function parseOptions(optionsJson) {
+  if (!optionsJson) return [];
+
+  let parsed = optionsJson;
+
+  if (typeof optionsJson === 'string') {
+    try {
+      parsed = JSON.parse(optionsJson);
+    } catch {
+      // Handle PowerShell or map format: @{key1=val1; key2=val2}
+      const match = optionsJson.match(/@\{(.+)\}/);
+      if (match) {
+        const pairs = match[1].split(';');
+        const obj = {};
+        pairs.forEach((p) => {
+          const eqIdx = p.indexOf('=');
+          if (eqIdx !== -1) {
+            const k = p.slice(0, eqIdx).trim();
+            const v = p.slice(eqIdx + 1).trim();
+            if (k) obj[k] = v;
+          }
+        });
+        parsed = obj;
+      }
+    }
+  }
+
+  if (Array.isArray(parsed)) {
+    return parsed.map((option, index) => ({
+      id: String(option.id ?? index),
+      text: String(option.text ?? option.value ?? ''),
+    }));
+  }
+
+  if (parsed && typeof parsed === 'object') {
+    return Object.entries(parsed).map(([id, value]) => ({
+      id,
+      text: typeof value === 'string' ? value : String(value?.text ?? value ?? ''),
+    }));
+  }
+
+  return [];
+}
+
 export const SAMPLE_EXAM_DATA = {
-  attemptId: 'att-' + Date.now(),
+  attemptId: 'att-sample-01',
   testId: 'mock-cgl-01',
   title: 'SSC CGL Tier 1 - All India Full Mock #01',
   durationMinutes: 60,
@@ -83,138 +127,146 @@ export const SAMPLE_EXAM_DATA = {
             { id: 'D', text: '40 seconds' },
           ],
         },
-        {
-          id: 'q-203',
-          type: 'MCQ',
-          text: 'The compound interest on ₹ 10,000 for 2 years at 10% per annum compounded annually is:',
-          marks: 2,
-          negativeMarks: 0.5,
-          options: [
-            { id: 'A', text: '₹ 2,000' },
-            { id: 'B', text: '₹ 2,100' },
-            { id: 'C', text: '₹ 2,200' },
-            { id: 'D', text: '₹ 1,900' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'sec-3',
-      name: 'General Awareness',
-      durationMinutes: 10,
-      questions: [
-        {
-          id: 'q-301',
-          type: 'MCQ',
-          text: 'Which Article of the Indian Constitution is related to the "Right to Equality before law"?',
-          marks: 2,
-          negativeMarks: 0.5,
-          options: [
-            { id: 'A', text: 'Article 14' },
-            { id: 'B', text: 'Article 19' },
-            { id: 'C', text: 'Article 21' },
-            { id: 'D', text: 'Article 32' },
-          ],
-        },
-        {
-          id: 'q-302',
-          type: 'MCQ',
-          text: 'In economics, what is the term for a market dominated by a small number of sellers?',
-          marks: 2,
-          negativeMarks: 0.5,
-          options: [
-            { id: 'A', text: 'Monopoly' },
-            { id: 'B', text: 'Oligopoly' },
-            { id: 'C', text: 'Monopsony' },
-            { id: 'D', text: 'Perfect Competition' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'sec-4',
-      name: 'English Comprehension',
-      durationMinutes: 15,
-      questions: [
-        {
-          id: 'q-401',
-          type: 'MCQ',
-          text: 'Select the most appropriate SYNONYM of the given word:\n\n"PRUDENT"',
-          marks: 2,
-          negativeMarks: 0.5,
-          options: [
-            { id: 'A', text: 'Cautious' },
-            { id: 'B', text: 'Reckless' },
-            { id: 'C', text: 'Arrogant' },
-            { id: 'D', text: 'Vague' },
-          ],
-        },
-        {
-          id: 'q-402',
-          type: 'MCQ',
-          text: 'Select the idiom meaning "to face a difficult situation with courage":',
-          marks: 2,
-          negativeMarks: 0.5,
-          options: [
-            { id: 'A', text: 'Bite the bullet' },
-            { id: 'B', text: 'Burn bridges' },
-            { id: 'C', text: 'Break a leg' },
-            { id: 'D', text: 'Spill the beans' },
-          ],
-        },
       ],
     },
   ],
 };
 
 export const attemptService = {
+  /**
+   * Starts a new attempt on the Baahubali backend.
+   * Requires Authorization Bearer token.
+   */
   async startAttempt(testId, durationMinutes) {
+    const res = await apiClient.post('/attempts-api/', {
+      testId,
+      durationMinutes: Number(durationMinutes) || 60,
+    });
+    return res;
+  },
+
+  /**
+   * Fetches full attempt state including test structure and parsed questions.
+   */
+  async getAttemptState(attemptId, testId) {
+    let attemptRes = null;
     try {
-      const data = await apiClient.post('/attempts-api/', {
-        testId,
-        durationMinutes,
-      });
-      return data;
-    } catch (err) {
-      console.warn('API error starting attempt, using fallback mock test:', err?.message);
+      attemptRes = await apiClient.get(`/attempts-api/${attemptId}`);
+    } catch (e) {
+      console.warn('Could not fetch attempt state directly:', e?.message);
+    }
+
+    const effectiveTestId = attemptRes?.testId || testId;
+
+    if (!effectiveTestId) {
+      throw new Error('Test identifier is required to load questions.');
+    }
+
+    // Fetch the real test structure with all sections and questions
+    const structureRes = await apiClient.get(
+      `/tests-api/catalog/mock-tests/${encodeURIComponent(effectiveTestId)}/structure`
+    );
+
+    if (!structureRes || !structureRes.sections) {
+      throw new Error('Exam structure could not be retrieved from server.');
+    }
+
+    // Parse sections and question options
+    const sections = structureRes.sections.map((sec, secIdx) => {
+      const rawQuestions = sec.questions || [];
+      const parsedQuestions = rawQuestions.map((q, qIdx) => ({
+        id: q.questionId || `q-${secIdx}-${qIdx}`,
+        type: q.questionType || 'MCQ',
+        text: q.questionText || '',
+        options: parseOptions(q.optionsJson),
+        marks: Number(q.positiveMarks) || 2,
+        negativeMarks: Number(q.negativeMarks) || 0,
+        questionImages: q.questionImages || [],
+        optionImages: q.optionImages || {},
+      }));
+
       return {
-        attemptId: 'att-' + Date.now(),
-        testId: testId || 'mock-cgl-01',
-        ...SAMPLE_EXAM_DATA,
+        id: sec.sectionId || `sec-${secIdx}`,
+        name: sec.title || `Section ${secIdx + 1}`,
+        durationMinutes: sec.durationMinutes || 30,
+        questions: parsedQuestions,
       };
+    });
+
+    return {
+      attemptId: attemptRes?.attemptId || attemptId,
+      testId: effectiveTestId,
+      title: structureRes.title || 'Mock Examination',
+      durationMinutes: structureRes.totalDurationMinutes || 60,
+      sections,
+      serverAnswers: attemptRes?.answers || {},
+    };
+  },
+
+  /**
+   * Saves student answer responses to the backend.
+   */
+  async saveResponses(attemptId, answers) {
+    try {
+      return await apiClient.patch(`/attempts-api/${attemptId}`, { answers });
+    } catch (err) {
+      console.warn('Error saving answers in background:', err?.message);
+      return { success: false };
     }
   },
 
-  async getAttemptState(attemptId) {
-    try {
-      const res = await apiClient.get(`/attempts-api/${attemptId}`);
-      return res;
-    } catch (err) {
-      return SAMPLE_EXAM_DATA;
+  /**
+   * Submits the attempt to the backend and fetches the official report card.
+   */
+  async submitAttempt(attemptId, payload = {}) {
+    // 1. Flush any pending answers if provided
+    if (payload.responses && Object.keys(payload.responses).length > 0) {
+      const flatAnswers = {};
+      Object.entries(payload.responses).forEach(([qId, resp]) => {
+        if (resp?.selected && resp.selected.length > 0) {
+          flatAnswers[qId] = resp.selected[0];
+        }
+      });
+      try {
+        await apiClient.patch(`/attempts-api/${attemptId}`, { answers: flatAnswers });
+      } catch (e) {
+        console.warn('Failed to flush final responses before submit:', e?.message);
+      }
     }
-  },
 
-  async saveResponses(attemptId, payload) {
-    try {
-      return await apiClient.patch(`/attempts-api/${attemptId}`, payload);
-    } catch (err) {
-      return { success: true };
-    }
-  },
+    // 2. Submit the attempt to the backend
+    await apiClient.post(`/attempts-api/${attemptId}/submit`);
 
-  async submitAttempt(attemptId, payload) {
+    // 3. Retrieve the evaluated academic performance report
     try {
-      return await apiClient.post(`/attempts-api/${attemptId}/submit`, payload);
-    } catch (err) {
+      const report = await apiClient.get(`/analytics-api/reports/${attemptId}`);
+      if (report && report.summary) {
+        return {
+          ...report,
+          attemptId,
+          score: report.summary.totalScore,
+          totalMarks: report.summary.maxScore,
+          accuracy: report.summary.accuracyPercentage,
+          percentile: report.summary.percentile,
+          rank: report.summary.rank,
+        };
+      }
+      return report;
+    } catch (reportErr) {
+      console.warn('Could not immediately fetch report, returning submitted status:', reportErr?.message);
       return {
         success: true,
         attemptId,
         submittedAt: new Date().toISOString(),
-        score: 16,
-        totalMarks: 20,
-        accuracy: 80,
       };
     }
+  },
+
+  /**
+   * Fetches official evaluation report card for an attempt.
+   */
+  async getAttemptReport(attemptId) {
+    return await apiClient.get(`/analytics-api/reports/${attemptId}`);
   },
 };
 

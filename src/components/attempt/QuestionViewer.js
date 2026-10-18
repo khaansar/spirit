@@ -67,8 +67,9 @@ export function QuestionViewer({
           {isMulti ? 'Select all that apply:' : 'Select one option:'}
         </Text>
 
-        {question.options?.map((option) => {
+        {question.options?.map((option, optIdx) => {
           const isSelected = selectedOptionIds.includes(option.id);
+          const optionLetter = ['A', 'B', 'C', 'D', 'E', 'F'][optIdx] || String(optIdx + 1);
 
           return (
             <TouchableOpacity
@@ -90,7 +91,7 @@ export function QuestionViewer({
                 {isSelected ? (
                   <Check size={14} color={COLORS.common.white} strokeWidth={3} />
                 ) : (
-                  <Text style={styles.optionKeyText}>{option.id}</Text>
+                  <Text style={styles.optionKeyText}>{optionLetter}</Text>
                 )}
               </View>
 

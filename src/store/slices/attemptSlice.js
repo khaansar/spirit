@@ -5,9 +5,21 @@ export const startAttemptThunk = createAsyncThunk(
   'attempt/startAttempt',
   async ({ testId, durationMinutes }, { rejectWithValue }) => {
     try {
-      const data = await attemptService.startAttempt(testId, durationMinutes);
-      return data;
+      // 1. Create attempt record on backend
+      let attemptId = null;
+      try {
+        const startRes = await attemptService.startAttempt(testId, durationMinutes);
+        attemptId = startRes?.attemptId || startRes?.id;
+      } catch (startErr) {
+        console.warn('Backend startAttempt error:', startErr?.message);
+        attemptId = 'att-' + Date.now();
+      }
+
+      // 2. Fetch real questions and structure from backend
+      const fullState = await attemptService.getAttemptState(attemptId, testId);
+      return fullState;
     } catch (err) {
+      console.warn('Error initializing test attempt:', err?.message);
       return rejectWithValue(err?.message || 'Failed to initialize exam');
     }
   }
@@ -52,13 +64,28 @@ const attemptSlice = createSlice({
   initialState,
   reducers: {
     initLocalExam(state, action) {
+      // If already active with populated questions, preserve existing state
+      if (
+        state.status === 'active' &&
+        Array.isArray(state.sections) &&
+        state.sections.length > 0 &&
+        state.sections[0]?.questions?.length > 0
+      ) {
+        return;
+      }
+
       const data = action.payload || SAMPLE_EXAM_DATA;
       state.attemptId = data.attemptId || 'att-' + Date.now();
       state.testId = data.testId || 'test-1';
       state.testTitle = data.title || 'Mock Test';
       state.durationMinutes = data.durationMinutes || 60;
       state.timeRemainingSeconds = (data.durationMinutes || 60) * 60;
-      state.sections = data.sections || [];
+
+      const hasQuestions =
+        Array.isArray(data.sections) &&
+        data.sections.some((s) => Array.isArray(s.questions) && s.questions.length > 0);
+
+      state.sections = hasQuestions ? data.sections : SAMPLE_EXAM_DATA.sections;
       state.currentSectionIndex = 0;
       state.currentQuestionIndex = 0;
       state.responses = {};
@@ -67,7 +94,7 @@ const attemptSlice = createSlice({
       state.isSubmitModalOpen = false;
 
       // Mark the first question as visited
-      const firstQId = data.sections?.[0]?.questions?.[0]?.id;
+      const firstQId = state.sections?.[0]?.questions?.[0]?.id;
       if (firstQId) {
         state.responses[firstQId] = { selected: [], marked: false, visited: true };
       }
@@ -213,10 +240,19 @@ const attemptSlice = createSlice({
         state.currentSectionIndex = 0;
         state.currentQuestionIndex = 0;
         state.responses = {};
+        if (data.serverAnswers && typeof data.serverAnswers === 'object') {
+          Object.entries(data.serverAnswers).forEach(([qId, val]) => {
+            state.responses[qId] = {
+              selected: val ? [val] : [],
+              marked: false,
+              visited: true,
+            };
+          });
+        }
         state.status = 'active';
 
         const firstQId = data.sections?.[0]?.questions?.[0]?.id;
-        if (firstQId) {
+        if (firstQId && !state.responses[firstQId]) {
           state.responses[firstQId] = { selected: [], marked: false, visited: true };
         }
       })

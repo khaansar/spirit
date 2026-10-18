@@ -14,25 +14,31 @@ const getErrorMessage = (error, fallback) => {
   return fallback;
 };
 
+import { apiClientRaw } from '../../api/client';
+
 // Async Thunk: Login
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (credentials, { rejectWithValue }) => {
     try {
-      const data = await apiClient.post('/auth-api/login', credentials);
-      
-      // Persist access token if provided in response
+      // Use raw client so set-cookie interceptor captures ACCESS_TOKEN
+      const rawRes = await apiClientRaw.post('/auth-api/login', credentials);
+      const data = rawRes?.data?.data || rawRes?.data || {};
+
+      // If token is explicitly in body, persist it
       if (data?.accessToken) {
         await storage.setAccessToken(data.accessToken);
       }
       if (data?.refreshToken) {
         await storage.setRefreshToken(data.refreshToken);
       }
-      if (data?.user) {
-        await storage.setItem('clearit_user', JSON.stringify(data.user));
+
+      const user = data?.user || data;
+      if (user && typeof user === 'object') {
+        await storage.setItem('clearit_user', JSON.stringify(user));
       }
 
-      return data;
+      return user;
     } catch (err) {
       return rejectWithValue(getErrorMessage(err, 'Login failed. Please check your credentials.'));
     }
@@ -44,7 +50,23 @@ export const registerUser = createAsyncThunk(
   'auth/registerUser',
   async (userData, { rejectWithValue }) => {
     try {
-      const data = await apiClient.post('/auth-api/register', userData);
+      let { firstName, lastName, name, email, password, phone, targetExam } = userData;
+      if (!firstName && name) {
+        const names = name.trim().split(/\s+/);
+        firstName = names[0];
+        lastName = names.slice(1).join(' ') || 'Student';
+      }
+
+      const payload = {
+        firstName: firstName || 'Student',
+        lastName: lastName || 'Learner',
+        email,
+        password,
+        phone: phone || null,
+        targetExam: targetExam || null,
+      };
+
+      const data = await apiClient.post('/auth-api/register', payload);
       return data;
     } catch (err) {
       return rejectWithValue(getErrorMessage(err, 'Registration failed.'));
@@ -75,18 +97,32 @@ export const restoreSession = createAsyncThunk(
         return null;
       }
 
-      // Try fetching current user profile
+      // Try fetching current user profile from Baahubali
       try {
-        const userData = await apiClient.get('/auth-api/me');
-        return userData?.user || userData;
-      } catch (apiErr) {
-        // Fallback to locally cached user if network is temporarily offline
-        const cachedUserStr = await storage.getItem('clearit_user');
-        if (cachedUserStr) {
-          return JSON.parse(cachedUserStr);
+        const userData = await apiClient.get('/auth-api/users/me');
+        const user = userData?.user || userData;
+        if (user) {
+          await storage.setItem('clearit_user', JSON.stringify(user));
+          return user;
         }
-        await storage.clearTokens();
-        return null;
+      } catch (apiErr) {
+        // Fallback to /auth-api/me if /users/me fails
+        try {
+          const userData = await apiClient.get('/auth-api/me');
+          const user = userData?.user || userData;
+          if (user) {
+            await storage.setItem('clearit_user', JSON.stringify(user));
+            return user;
+          }
+        } catch (e) {
+          // Fallback to locally cached user if network is temporarily offline
+          const cachedUserStr = await storage.getItem('clearit_user');
+          if (cachedUserStr) {
+            return JSON.parse(cachedUserStr);
+          }
+          await storage.clearTokens();
+          return null;
+        }
       }
     } catch (err) {
       await storage.clearTokens();

@@ -167,6 +167,21 @@ export function LoginScreen({ navigation }) {
                 rightIcon={<ArrowRight size={18} color={COLORS.common.white} />}
                 style={styles.loginButton}
               />
+
+              {/* Demo Account Quick Fill */}
+              <TouchableOpacity
+                onPress={() => {
+                  setEmail('teststudent123@clearit.com');
+                  setPassword('Password123!');
+                  if (fieldErrors.email || fieldErrors.password) {
+                    setFieldErrors({});
+                  }
+                }}
+                style={styles.demoFillBtn}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.demoFillText}>⚡ Tap to use Test Student Account</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Divider */}
@@ -341,6 +356,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.accent.skyLight,
+  },
+  demoFillBtn: {
+    marginTop: 10,
+    alignItems: 'center',
+    paddingVertical: 8,
+    backgroundColor: 'rgba(94, 67, 243, 0.08)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(94, 67, 243, 0.2)',
+  },
+  demoFillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.brand[400],
   },
 });
 

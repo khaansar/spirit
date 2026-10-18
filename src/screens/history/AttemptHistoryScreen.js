@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import { ArrowLeft, Clock, Trophy, CheckCircle2, ChevronRight, FileText } from 'lucide-react-native';
+import { ArrowLeft, Clock, Trophy, CheckCircle2, ChevronRight, FileText, Award } from 'lucide-react-native';
 
 import { COLORS } from '../../constants/theme';
 import { fetchHistory } from '../../store/slices/analyticsSlice';
@@ -90,11 +90,11 @@ export function AttemptHistoryScreen({ navigation }) {
               <View style={styles.actionRow}>
                 <TouchableOpacity
                   style={styles.actionBtnOutline}
-                  onPress={() => navigation.navigate('Leaderboard', { testSlug: item.testId })}
+                  onPress={() => navigation.navigate('TestResult', { attemptId: item.attemptId })}
                   activeOpacity={0.7}
                 >
-                  <Trophy size={14} color={COLORS.brand[400]} />
-                  <Text style={styles.actionBtnOutlineText}>Leaderboard</Text>
+                  <Award size={14} color={COLORS.brand[400]} />
+                  <Text style={styles.actionBtnOutlineText}>Scorecard</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -103,7 +103,15 @@ export function AttemptHistoryScreen({ navigation }) {
                   activeOpacity={0.8}
                 >
                   <FileText size={14} color={COLORS.common.white} />
-                  <Text style={styles.actionBtnPrimaryText}>View Solutions</Text>
+                  <Text style={styles.actionBtnPrimaryText}>Solutions</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.actionBtnIconOnly}
+                  onPress={() => navigation.navigate('Leaderboard', { testSlug: item.testId })}
+                  activeOpacity={0.7}
+                >
+                  <Trophy size={14} color={COLORS.brand[400]} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -274,6 +282,16 @@ const styles = StyleSheet.create({
     color: COLORS.common.white,
     fontSize: 12,
     fontWeight: '700',
+  },
+  actionBtnIconOnly: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.slate[950],
+    borderWidth: 1,
+    borderColor: COLORS.slate[700],
   },
   emptyBox: {
     padding: 40,

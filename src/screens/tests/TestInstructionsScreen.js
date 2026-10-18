@@ -7,6 +7,7 @@ import {
   StyleSheet,
   StatusBar,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -24,14 +25,17 @@ import Checkbox from '../../components/common/Checkbox';
 import Button from '../../components/common/Button';
 import { COLORS } from '../../constants/theme';
 import { fetchTestStructure } from '../../store/slices/catalogSlice';
+import { startAttemptThunk } from '../../store/slices/attemptSlice';
 
 export function TestInstructionsScreen({ route, navigation }) {
   const dispatch = useDispatch();
   const { test } = route.params || {};
+  const { isAuthenticated } = useSelector((state) => state.auth);
   const { currentTestStructure, loading } = useSelector((state) => state.catalog);
 
   const [hasAgreed, setHasAgreed] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [isStarting, setIsStarting] = useState(false);
 
   useEffect(() => {
     if (test?.id) {
@@ -47,10 +51,43 @@ export function TestInstructionsScreen({ route, navigation }) {
     { id: '4', name: 'English Comprehension', questionCount: 25, marksPerQuestion: 2, negativeMarks: 0.5 },
   ];
 
-  const handleStartExam = () => {
-    if (!hasAgreed) return;
-    // Launches Phase 3 Mock Test Engine
-    navigation.navigate('TestAttempt', { test: testDetails, language: selectedLanguage });
+  const handleStartExam = async () => {
+    if (!hasAgreed || isStarting) return;
+
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Sign In Required',
+        'You must be signed in to take this test so that your questions, live timer, and scorecard are recorded to your account.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Sign In Now',
+            onPress: () => navigation.navigate('Login'),
+          },
+        ]
+      );
+      return;
+    }
+
+    setIsStarting(true);
+    try {
+      const targetTestId = test?.id || testDetails?.testId || testDetails?.id;
+      const duration = testDetails?.totalDurationMinutes || testDetails?.durationMinutes || 60;
+
+      const res = await dispatch(
+        startAttemptThunk({ testId: targetTestId, durationMinutes: duration })
+      ).unwrap();
+
+      setIsStarting(false);
+      navigation.navigate('TestAttempt', { test: res, language: selectedLanguage });
+    } catch (err) {
+      setIsStarting(false);
+      Alert.alert(
+        'Unable to Start Exam',
+        err || 'Could not connect to the exam server. Please check your network and try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (
@@ -194,9 +231,10 @@ export function TestInstructionsScreen({ route, navigation }) {
 
         {/* Start Exam CTA */}
         <Button
-          title="I am ready to begin"
+          title={isStarting ? 'Preparing Exam...' : 'I am ready to begin'}
           onPress={handleStartExam}
-          disabled={!hasAgreed}
+          disabled={!hasAgreed || isStarting}
+          loading={isStarting}
           rightIcon={<Play size={16} color={COLORS.common.white} fill={COLORS.common.white} />}
           style={styles.startButton}
         />
