@@ -61,7 +61,7 @@ export function ProfileScreen({ navigation }) {
         analyticsService.getYearlyStreak(),
         analyticsService.getUserPerformance(),
         analyticsService.getUserTopicPerformance(),
-        historyService.getHistory(1, 5),
+        historyService.getAttemptHistory(),
       ]);
 
       if (streakRes.status === 'fulfilled' && streakRes.value) {

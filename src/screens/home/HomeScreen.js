@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTheme } from '../../context/ThemeContext';
 import {
   Award,
   Clock,
@@ -96,8 +97,8 @@ export function HomeScreen({ navigation }) {
   const isTablet = width >= 768;
   const isLargeTablet = width >= 1024;
 
-  // Theme Toggle state (Moon / Sun)
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const { isDark, theme, toggleTheme } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
 
   // Live Exam Preview state
   const [previewSeconds, setPreviewSeconds] = useState(3590);
@@ -153,7 +154,7 @@ export function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       {/* Top App Bar with Logo & Theme Toggle (Replaced avatar with Moon/Sun) */}
       <View style={styles.topBar}>
@@ -161,15 +162,15 @@ export function HomeScreen({ navigation }) {
 
         <View style={styles.topBarRight}>
           <TouchableOpacity
-            onPress={() => setIsDarkMode((d) => !d)}
+            onPress={toggleTheme}
             style={styles.themeToggleBtn}
             activeOpacity={0.7}
             accessibilityLabel="Toggle Theme Mode"
           >
-            {isDarkMode ? (
+            {isDark ? (
               <Sun size={18} color="#fbbf24" />
             ) : (
-              <Moon size={18} color={COLORS.slate[300]} />
+              <Moon size={18} color={theme.colors.textSecondary} />
             )}
           </TouchableOpacity>
 
@@ -838,10 +839,10 @@ export function HomeScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme, isDark) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.slate[950],
+    backgroundColor: theme.colors.bg,
   },
   topBar: {
     flexDirection: 'row',
@@ -850,8 +851,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[900],
-    backgroundColor: COLORS.slate[950],
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.topBarBg,
   },
   topBarRight: {
     flexDirection: 'row',
@@ -862,9 +863,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: COLORS.slate[900],
+    backgroundColor: theme.colors.card,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -878,7 +879,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   signInText: {
-    color: COLORS.common.white,
+    color: theme.colors.text,
     fontWeight: '700',
     fontSize: 13,
   },
@@ -900,11 +901,11 @@ const styles = StyleSheet.create({
 
   /* Hero Section */
   heroSection: {
-    backgroundColor: COLORS.slate[900],
+    backgroundColor: theme.colors.card,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     marginBottom: 24,
   },
   heroSectionTablet: {
@@ -948,7 +949,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: COLORS.common.white,
+    color: theme.colors.text,
     lineHeight: 32,
     letterSpacing: -0.3,
   },
@@ -958,7 +959,7 @@ const styles = StyleSheet.create({
   },
   heroSubtitle: {
     fontSize: 13,
-    color: COLORS.slate[300],
+    color: theme.colors.textSecondary,
     marginTop: 8,
     lineHeight: 20,
   },
@@ -979,7 +980,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   primaryCtaText: {
-    color: COLORS.common.white,
+    color: theme.colors.text,
     fontWeight: '700',
     fontSize: 13,
   },
@@ -987,14 +988,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.slate[800],
+    backgroundColor: theme.colors.border,
     borderWidth: 1,
-    borderColor: COLORS.slate[700],
+    borderColor: theme.colors.border,
     borderRadius: 14,
     paddingVertical: 12,
   },
   secondaryCtaText: {
-    color: COLORS.slate[200],
+    color: theme.colors.text,
     fontWeight: '700',
     fontSize: 13,
   },
@@ -1017,7 +1018,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 10,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     minWidth: 180,
     flex: 1,
   },
@@ -1025,7 +1026,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: COLORS.slate[800],
+    backgroundColor: theme.colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1035,20 +1036,20 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   featureDesc: {
     fontSize: 11,
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     marginTop: 1,
   },
 
   /* Exam Preview Simulation Card */
   examPreviewCard: {
-    backgroundColor: COLORS.slate[950],
+    backgroundColor: theme.colors.cardInner,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     overflow: 'hidden',
   },
   previewTitleBar: {
@@ -1062,7 +1063,7 @@ const styles = StyleSheet.create({
   previewTitleText: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.common.white,
+    color: theme.colors.text,
     flex: 1,
   },
   previewTimerPill: {
@@ -1077,7 +1078,7 @@ const styles = StyleSheet.create({
   previewTimerText: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   previewBody: {
     padding: 14,
@@ -1085,13 +1086,13 @@ const styles = StyleSheet.create({
   previewQMeta: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     marginBottom: 4,
   },
   previewQuestion: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.common.white,
+    color: theme.colors.text,
     lineHeight: 19,
     marginBottom: 12,
   },
@@ -1103,9 +1104,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: COLORS.slate[900],
+    backgroundColor: theme.colors.card,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -1134,22 +1135,22 @@ const styles = StyleSheet.create({
   },
   previewOptionText: {
     fontSize: 12,
-    color: COLORS.slate[300],
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   previewOptionTextSelected: {
-    color: COLORS.common.white,
+    color: theme.colors.text,
     fontWeight: '700',
   },
   miniPaletteBox: {
     borderTopWidth: 1,
-    borderTopColor: COLORS.slate[800],
+    borderTopColor: theme.colors.border,
     paddingTop: 10,
   },
   miniPaletteTitle: {
     fontSize: 10,
     fontWeight: '700',
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 6,
@@ -1190,21 +1191,21 @@ const styles = StyleSheet.create({
   aiInsightTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   aiInsightSub: {
     fontSize: 10,
-    color: COLORS.slate[300],
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
 
   /* Logged-in Welcome Banner */
   welcomeBanner: {
-    backgroundColor: COLORS.slate[900],
+    backgroundColor: theme.colors.card,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     marginBottom: 20,
   },
   welcomeBannerTablet: {
@@ -1247,14 +1248,14 @@ const styles = StyleSheet.create({
   welcomeGreeting: {
     fontSize: 22,
     fontWeight: '800',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   welcomeGreetingTablet: {
     fontSize: 28,
   },
   welcomeSubtext: {
     fontSize: 13,
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     marginTop: 6,
     lineHeight: 20,
   },
@@ -1270,31 +1271,31 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   bannerPrimaryBtnText: {
-    color: COLORS.common.white,
+    color: theme.colors.text,
     fontWeight: '700',
     fontSize: 13,
   },
   bannerSecondaryBtn: {
-    backgroundColor: COLORS.slate[800],
+    backgroundColor: theme.colors.border,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.slate[700],
+    borderColor: theme.colors.border,
   },
   bannerSecondaryBtnText: {
-    color: COLORS.slate[200],
+    color: theme.colors.text,
     fontWeight: '700',
     fontSize: 13,
   },
 
   /* Weekly Streak Card */
   streakCard: {
-    backgroundColor: COLORS.slate[950],
+    backgroundColor: theme.colors.cardInner,
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     marginBottom: 12,
   },
   streakHeader: {
@@ -1311,7 +1312,7 @@ const styles = StyleSheet.create({
   streakTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   streakBadge: {
     fontSize: 11,
@@ -1329,13 +1330,13 @@ const styles = StyleSheet.create({
   weekDayLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
   },
   weekDot: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: COLORS.slate[800],
+    backgroundColor: theme.colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1354,11 +1355,11 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: COLORS.slate[950],
+    backgroundColor: theme.colors.cardInner,
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     alignItems: 'center',
   },
   metricIconBox: {
@@ -1372,11 +1373,11 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 17,
     fontWeight: '800',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   metricLabel: {
     fontSize: 11,
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     marginTop: 2,
   },
   quickAccessRow: {
@@ -1390,16 +1391,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: COLORS.slate[950],
+    backgroundColor: theme.colors.cardInner,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     paddingVertical: 9,
     borderRadius: 10,
   },
   quickAccessText: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.slate[300],
+    color: theme.colors.textSecondary,
   },
 
   /* Continue Card */
@@ -1425,7 +1426,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: COLORS.slate[900],
+    backgroundColor: theme.colors.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -1440,7 +1441,7 @@ const styles = StyleSheet.create({
   continueTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.common.white,
+    color: theme.colors.text,
     marginTop: 2,
   },
   continueBtn: {
@@ -1453,7 +1454,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   continueBtnText: {
-    color: COLORS.common.white,
+    color: theme.colors.text,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1469,11 +1470,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   sectionSubtitle: {
     fontSize: 12,
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     marginTop: 2,
   },
   viewAllText: {
@@ -1489,17 +1490,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: COLORS.slate[900],
+    backgroundColor: theme.colors.card,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
   },
   categoryChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.slate[200],
+    color: theme.colors.text,
   },
 
   /* Tablet Categories Grid */
@@ -1513,11 +1514,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.slate[900],
+    backgroundColor: theme.colors.card,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     width: '31.5%',
     minWidth: 220,
   },
@@ -1531,18 +1532,18 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: COLORS.slate[800],
+    backgroundColor: theme.colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   categoryCardTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   categoryCardSub: {
     fontSize: 10,
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     marginTop: 2,
   },
 
@@ -1572,11 +1573,11 @@ const styles = StyleSheet.create({
 
   /* Value Section (Why Choose ClearIt) */
   valueSection: {
-    backgroundColor: COLORS.slate[900],
+    backgroundColor: theme.colors.card,
     borderRadius: 22,
     padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     marginTop: 14,
     marginBottom: 20,
   },
@@ -1588,11 +1589,11 @@ const styles = StyleSheet.create({
   valueSectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   valueSectionSub: {
     fontSize: 12,
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     marginTop: 3,
     marginBottom: 16,
   },
@@ -1604,11 +1605,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   valueCard: {
-    backgroundColor: COLORS.slate[950],
+    backgroundColor: theme.colors.cardInner,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
   },
   valueCardTablet: {
     flex: 1,
@@ -1624,32 +1625,32 @@ const styles = StyleSheet.create({
   valueTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   valueDesc: {
     fontSize: 11,
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     marginTop: 3,
     lineHeight: 16,
   },
 
   /* How It Works Section */
   howSection: {
-    backgroundColor: COLORS.slate[900],
+    backgroundColor: theme.colors.card,
     borderRadius: 22,
     padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     marginBottom: 20,
   },
   howTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   howSub: {
     fontSize: 12,
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     marginTop: 2,
     marginBottom: 16,
   },
@@ -1669,11 +1670,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'column',
     alignItems: 'flex-start',
-    backgroundColor: COLORS.slate[950],
+    backgroundColor: theme.colors.cardInner,
     padding: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
   },
   stepNumBox: {
     width: 28,
@@ -1685,7 +1686,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   stepNumText: {
-    color: COLORS.common.white,
+    color: theme.colors.text,
     fontWeight: '800',
     fontSize: 12,
   },
@@ -1695,11 +1696,11 @@ const styles = StyleSheet.create({
   stepItemTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   stepItemDesc: {
     fontSize: 11,
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     marginTop: 2,
     lineHeight: 16,
   },
@@ -1708,12 +1709,12 @@ const styles = StyleSheet.create({
   statsStrip: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.slate[900],
+    backgroundColor: theme.colors.card,
     borderRadius: 18,
     paddingVertical: 18,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     marginBottom: 20,
   },
   statsStripTablet: {
@@ -1728,22 +1729,22 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 17,
     fontWeight: '800',
-    color: COLORS.common.white,
+    color: theme.colors.text,
     marginTop: 4,
   },
   statLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
   },
 
   /* FAQ Accordion Section */
   faqSection: {
-    backgroundColor: COLORS.slate[900],
+    backgroundColor: theme.colors.card,
     borderRadius: 22,
     padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     marginBottom: 20,
   },
   faqBadge: {
@@ -1766,11 +1767,11 @@ const styles = StyleSheet.create({
   faqTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.common.white,
+    color: theme.colors.text,
   },
   faqSubtitle: {
     fontSize: 12,
-    color: COLORS.slate[400],
+    color: theme.colors.textMuted,
     marginTop: 2,
     marginBottom: 14,
   },
@@ -1778,10 +1779,10 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   faqCard: {
-    backgroundColor: COLORS.slate[950],
+    backgroundColor: theme.colors.cardInner,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
+    borderColor: theme.colors.border,
     padding: 14,
   },
   faqQuestionRow: {
@@ -1798,18 +1799,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.common.white,
+    color: theme.colors.text,
     lineHeight: 18,
   },
   faqAnswerBox: {
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: COLORS.slate[800],
+    borderTopColor: theme.colors.border,
   },
   faqAnswerText: {
     fontSize: 12,
-    color: COLORS.slate[300],
+    color: theme.colors.textSecondary,
     lineHeight: 18,
   },
 
@@ -1826,12 +1827,12 @@ const styles = StyleSheet.create({
   bottomJoinTitle: {
     fontSize: 19,
     fontWeight: '800',
-    color: COLORS.common.white,
+    color: theme.colors.text,
     textAlign: 'center',
   },
   bottomJoinDesc: {
     fontSize: 13,
-    color: COLORS.slate[300],
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginTop: 6,
@@ -1845,7 +1846,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
   },
   bottomJoinBtnText: {
-    color: COLORS.common.white,
+    color: theme.colors.text,
     fontWeight: '700',
     fontSize: 13,
   },

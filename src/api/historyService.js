@@ -102,6 +102,10 @@ export const historyService = {
     }
   },
 
+  async getHistory(page = 1, perPage = 10) {
+    return await this.getAttemptHistory();
+  },
+
   async getAttemptSolutions(attemptId) {
     try {
       const attempt = await apiClient.get(`/attempts-api/${attemptId}`);

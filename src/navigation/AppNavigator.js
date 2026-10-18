@@ -23,18 +23,28 @@ import OrdersPaymentsScreen from '../screens/payments/OrdersPaymentsScreen';
 import FaqScreen from '../screens/help/FaqScreen';
 
 import { COLORS } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 function MainTabNavigator() {
+  const { isDark, theme } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: {
+          backgroundColor: theme.colors.navBg,
+          borderTopColor: theme.colors.navBorder,
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
         tabBarActiveTintColor: COLORS.brand[400],
-        tabBarInactiveTintColor: COLORS.slate[500],
+        tabBarInactiveTintColor: isDark ? COLORS.slate[500] : COLORS.slate[400],
         tabBarLabelStyle: styles.tabBarLabel,
       }}
     >

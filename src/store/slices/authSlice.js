@@ -14,30 +14,14 @@ const getErrorMessage = (error, fallback) => {
   return fallback;
 };
 
-import { apiClientRaw } from '../../api/client';
+import authService from '../../api/authService';
 
 // Async Thunk: Login
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (credentials, { rejectWithValue }) => {
     try {
-      // Use raw client so set-cookie interceptor captures ACCESS_TOKEN
-      const rawRes = await apiClientRaw.post('/auth-api/login', credentials);
-      const data = rawRes?.data?.data || rawRes?.data || {};
-
-      // If token is explicitly in body, persist it
-      if (data?.accessToken) {
-        await storage.setAccessToken(data.accessToken);
-      }
-      if (data?.refreshToken) {
-        await storage.setRefreshToken(data.refreshToken);
-      }
-
-      const user = data?.user || data;
-      if (user && typeof user === 'object') {
-        await storage.setItem('clearit_user', JSON.stringify(user));
-      }
-
+      const user = await authService.login(credentials);
       return user;
     } catch (err) {
       return rejectWithValue(getErrorMessage(err, 'Login failed. Please check your credentials.'));

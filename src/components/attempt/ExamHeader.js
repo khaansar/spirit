@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Clock, LayoutGrid, AlertCircle } from 'lucide-react-native';
+import { Clock, LayoutGrid, AlertCircle, RotateCw } from 'lucide-react-native';
 import { COLORS } from '../../constants/theme';
 
 export function ExamHeader({
@@ -10,6 +10,8 @@ export function ExamHeader({
   totalQuestions,
   onOpenPalette,
   onSubmitPress,
+  onToggleOrientation,
+  isLandscape = false,
 }) {
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
@@ -46,8 +48,19 @@ export function ExamHeader({
         </Text>
       </View>
 
-      {/* Right Action: Palette & Submit */}
+      {/* Right Action: Orientation, Palette & Submit */}
       <View style={styles.rightActions}>
+        {onToggleOrientation && (
+          <TouchableOpacity
+            onPress={onToggleOrientation}
+            style={styles.orientationBtn}
+            activeOpacity={0.7}
+            accessibilityLabel="Toggle Screen Orientation"
+          >
+            <RotateCw size={16} color={isLandscape ? COLORS.brand[400] : COLORS.slate[300]} />
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           onPress={onOpenPalette}
           style={styles.paletteButton}
@@ -126,6 +139,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  orientationBtn: {
+    backgroundColor: COLORS.slate[950],
+    padding: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.slate[800],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   paletteButton: {
     flexDirection: 'row',

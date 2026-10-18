@@ -119,7 +119,10 @@ export function AccountSettingsScreen({ navigation }) {
       setProfileSuccess('Profile changes saved successfully!');
       Alert.alert('Profile Updated', 'Your personal details have been saved successfully.');
     } catch (err) {
-      const msg = err?.message || 'Failed to save profile changes. Please try again.';
+      const isAuthError = err?.status === 401 || err?.message?.toLowerCase().includes('authentication') || err?.message?.toLowerCase().includes('token');
+      const msg = isAuthError
+        ? 'Session expired or authentication required. Please sign in again.'
+        : err?.message || 'Failed to save profile changes. Please try again.';
       setProfileError(msg);
       Alert.alert('Update Failed', msg);
     } finally {
@@ -165,7 +168,10 @@ export function AccountSettingsScreen({ navigation }) {
       setConfirmPassword('');
       Alert.alert('Security', 'Your password has been changed successfully.');
     } catch (err) {
-      const msg = err?.message || 'Failed to update password. Please check your current password.';
+      const isAuthError = err?.status === 401 || err?.message?.toLowerCase().includes('authentication') || err?.message?.toLowerCase().includes('token');
+      const msg = isAuthError
+        ? 'Session expired or authentication required. Please sign in again.'
+        : err?.message || 'Failed to update password. Please check your current password.';
       setPasswordError(msg);
       Alert.alert('Error', msg);
     } finally {

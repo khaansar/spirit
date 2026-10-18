@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -55,18 +55,20 @@ export function TestAttemptScreen({ route, navigation }) {
     lastResult,
   } = useSelector((state) => state.attempt);
 
+  const [isLandscape, setIsLandscape] = useState(false);
+
   // Initialize test data on mount
   useEffect(() => {
     dispatch(initLocalExam(test));
   }, [dispatch, test]);
 
-  // Lock to landscape & block screenshots during examination (restore on unmount)
+  // Default to normal screen (portrait) & block screenshots during examination (restore on unmount)
   useEffect(() => {
-    async function activateExamSecurityAndOrientation() {
+    async function activateExamSecurity() {
       try {
-        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       } catch (e) {
-        console.warn('Could not lock landscape orientation:', e?.message);
+        // Keep normal default portrait
       }
 
       try {
@@ -76,13 +78,27 @@ export function TestAttemptScreen({ route, navigation }) {
       }
     }
 
-    activateExamSecurityAndOrientation();
+    activateExamSecurity();
 
     return () => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
       ScreenCapture.allowScreenCaptureAsync().catch(() => {});
     };
   }, []);
+
+  const handleToggleOrientation = async () => {
+    try {
+      if (isLandscape) {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        setIsLandscape(false);
+      } else {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        setIsLandscape(true);
+      }
+    } catch (e) {
+      console.warn('Orientation toggle failed:', e?.message);
+    }
+  };
 
   // Real-time Countdown Timer Interval
   useEffect(() => {
@@ -182,6 +198,8 @@ export function TestAttemptScreen({ route, navigation }) {
         totalQuestions={totalExamQuestions}
         onOpenPalette={() => dispatch(setPaletteOpen(true))}
         onSubmitPress={() => dispatch(setSubmitModalOpen(true))}
+        onToggleOrientation={handleToggleOrientation}
+        isLandscape={isLandscape}
       />
 
       {/* Section Quick Switcher Tabs */}

@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
@@ -15,7 +16,10 @@ export const storage = {
         localStorage.setItem(key, value);
         return;
       }
-      await SecureStore.setItemAsync(key, value);
+      await AsyncStorage.setItem(key, value);
+      try {
+        await SecureStore.setItemAsync(key, value);
+      } catch (_) {}
     } catch (e) {
       console.warn(`Error setting storage item ${key}:`, e);
     }
@@ -31,9 +35,24 @@ export const storage = {
         if (val != null) memoryCache[key] = val;
         return val;
       }
-      const val = await SecureStore.getItemAsync(key);
-      if (val != null) memoryCache[key] = val;
-      return val;
+
+      // Check SecureStore first
+      try {
+        const sVal = await SecureStore.getItemAsync(key);
+        if (sVal != null) {
+          memoryCache[key] = sVal;
+          return sVal;
+        }
+      } catch (_) {}
+
+      // Fallback to AsyncStorage
+      const aVal = await AsyncStorage.getItem(key);
+      if (aVal != null) {
+        memoryCache[key] = aVal;
+        return aVal;
+      }
+
+      return null;
     } catch (e) {
       console.warn(`Error reading storage item ${key}:`, e);
       return memoryCache[key] || null;
@@ -47,7 +66,10 @@ export const storage = {
         localStorage.removeItem(key);
         return;
       }
-      await SecureStore.deleteItemAsync(key);
+      await AsyncStorage.removeItem(key);
+      try {
+        await SecureStore.deleteItemAsync(key);
+      } catch (_) {}
     } catch (e) {
       console.warn(`Error removing storage item ${key}:`, e);
     }

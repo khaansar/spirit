@@ -1,4 +1,7 @@
-import apiClient from './client';
+import apiClient, { apiClientRaw } from './client';
+
+let saveQueue = Promise.resolve();
+let authoritativeVersion = null;
 
 export function parseOptions(optionsJson) {
   if (!optionsJson) return [];
@@ -208,119 +211,101 @@ export const attemptService = {
   },
 
   /**
-   * Saves student answer responses using the exact Baahubali PatchAttemptRequest schema.
-   * Automatically handles optimistic lock conflicts (409) with authoritative version reload.
+   * Saves student answer responses sequentially using PatchAttemptRequest schema.
+   * Chained to saveQueue to completely eliminate concurrent version races.
    */
   async saveResponse(attemptId, { questionId, selectedOption, currentQuestionIndex = 0, version = 0, currentSectionId = null }) {
-    const payload = {
-      questionId,
-      selectedOption: selectedOption || null,
-      currentQuestionIndex: Number(currentQuestionIndex) || 0,
-      version: Number(version) || 0,
-    };
-    if (currentSectionId) {
-      payload.currentSectionId = currentSectionId;
-    }
+    const job = saveQueue
+      .catch(() => {})
+      .then(async () => {
+        let currentVer = authoritativeVersion !== null ? authoritativeVersion : Number(version) || 0;
+        let conflictRetries = 0;
+        const MAX_CONFLICT_RETRIES = 3;
 
-    let conflictRetries = 0;
-    const MAX_CONFLICT_RETRIES = 3;
-
-    while (true) {
-      try {
-        const rawRes = await apiClientRaw.patch(`/attempts-api/${attemptId}`, payload);
-        const newVer = rawRes?.meta?.attemptVersion ?? rawRes?.data?.attemptVersion;
-        return {
-          success: true,
-          attemptVersion: Number.isFinite(newVer) ? newVer : (payload.version + 1),
-          data: rawRes?.data || rawRes,
-        };
-      } catch (err) {
-        if (err?.status === 409 && conflictRetries < MAX_CONFLICT_RETRIES) {
-          conflictRetries++;
+        while (true) {
           try {
-            const freshRaw = await apiClientRaw.get(`/attempts-api/${attemptId}`);
-            const freshVer = freshRaw?.meta?.attemptVersion ?? freshRaw?.data?.attemptVersion;
-            if (Number.isFinite(freshVer)) {
-              payload.version = freshVer;
-              continue;
+            const payload = {
+              questionId,
+              selectedOption: selectedOption || null,
+              currentQuestionIndex: Number(currentQuestionIndex) || 0,
+              version: currentVer,
+            };
+            if (currentSectionId) {
+              payload.currentSectionId = currentSectionId;
             }
-          } catch (freshErr) {
-            console.warn('Failed to refresh attempt version:', freshErr?.message);
+
+            const rawRes = await apiClientRaw.patch(`/attempts-api/${attemptId}`, payload);
+            const newVer = rawRes?.meta?.attemptVersion ?? rawRes?.data?.attemptVersion;
+            if (Number.isFinite(newVer)) {
+              authoritativeVersion = newVer;
+            } else {
+              authoritativeVersion = currentVer + 1;
+            }
+
+            return {
+              success: true,
+              attemptVersion: authoritativeVersion,
+              data: rawRes?.data || rawRes,
+            };
+          } catch (err) {
+            if (err?.status === 409 && conflictRetries < MAX_CONFLICT_RETRIES) {
+              conflictRetries++;
+              try {
+                const freshRaw = await apiClientRaw.get(`/attempts-api/${attemptId}`);
+                const freshVer = freshRaw?.meta?.attemptVersion ?? freshRaw?.data?.attemptVersion;
+                if (Number.isFinite(freshVer)) {
+                  currentVer = freshVer;
+                  authoritativeVersion = freshVer;
+                  continue;
+                }
+              } catch (_) {}
+            }
+            console.warn(`Could not sync response for question ${questionId}:`, err?.message);
+            return {
+              success: false,
+              attemptVersion: authoritativeVersion || currentVer,
+              error: err?.message,
+            };
           }
         }
-        console.warn(`Error saving response for question ${questionId}:`, err?.message);
-        throw err;
-      }
-    }
+      });
+
+    saveQueue = job;
+    return job;
   },
 
   /**
    * Submits the attempt to the backend and polls for the evaluated report.
    */
   async submitAttempt(attemptId, payload = {}) {
-    // 1. Flush any pending answers if provided using the exact backend Patch schema
-    if (payload.responses && Object.keys(payload.responses).length > 0) {
-      const questionEntries = Object.entries(payload.responses);
-      let currentVersion = Number(payload.version) || 0;
+    // 1. Await any in-flight autosaves
+    try {
+      await saveQueue;
+    } catch (_) {}
 
-      // Reload latest authoritative attempt version before flushing
-      try {
-        const freshRaw = await apiClientRaw.get(`/attempts-api/${attemptId}`);
-        const freshVer = freshRaw?.meta?.attemptVersion ?? freshRaw?.data?.attemptVersion;
-        if (Number.isFinite(freshVer)) {
-          currentVersion = freshVer;
-        }
-      } catch (_) {}
-
-      for (let idx = 0; idx < questionEntries.length; idx++) {
-        const [qId, resp] = questionEntries[idx];
-        if (resp?.selected && resp.selected.length > 0 && resp.saveState !== 'synced') {
-          const selectedOption = resp.selected[0];
-          let retries = 0;
-          while (retries < 3) {
-            try {
-              const patchRes = await apiClientRaw.patch(`/attempts-api/${attemptId}`, {
-                questionId: qId,
-                selectedOption,
-                currentQuestionIndex: idx,
-                version: currentVersion,
-              });
-              const newVer = patchRes?.meta?.attemptVersion ?? patchRes?.data?.attemptVersion;
-              if (Number.isFinite(newVer)) {
-                currentVersion = newVer;
-              } else {
-                currentVersion++;
-              }
-              break;
-            } catch (e) {
-              if (e?.status === 409) {
-                retries++;
-                try {
-                  const freshRaw = await apiClientRaw.get(`/attempts-api/${attemptId}`);
-                  const freshVer = freshRaw?.meta?.attemptVersion ?? freshRaw?.data?.attemptVersion;
-                  if (Number.isFinite(freshVer)) {
-                    currentVersion = freshVer;
-                    continue;
-                  }
-                } catch (_) {}
-              }
-              console.warn(`Could not sync answer for question ${qId}:`, e?.message);
-              break;
-            }
-          }
-        }
+    // 2. Submit the attempt to the backend
+    try {
+      await apiClient.post(`/attempts-api/${attemptId}/submit`);
+    } catch (submitErr) {
+      const msg = submitErr?.message || '';
+      const status = submitErr?.status;
+      if (
+        status === 409 ||
+        status === 410 ||
+        msg.toLowerCase().includes('already submitted') ||
+        msg.toLowerCase().includes('submitted')
+      ) {
+        // Attempt already marked submitted on backend, proceed to report retrieval
+      } else {
+        console.warn('Backend submitAttempt response:', msg);
       }
     }
 
-    // 2. Submit the attempt to the backend
-    await apiClient.post(`/attempts-api/${attemptId}/submit`);
-
     // 3. Poll for the evaluated report card (analytics-service computes rank/percentiles asynchronously via Kafka)
     let report = null;
-    const maxRetries = 5;
+    const maxRetries = 6;
     for (let i = 0; i < maxRetries; i++) {
-      // Wait before polling: Kafka consumer takes ~1.5 to 2.5 seconds to compute
-      await new Promise((resolve) => setTimeout(resolve, i === 0 ? 1800 : 1200));
+      await new Promise((resolve) => setTimeout(resolve, i === 0 ? 1500 : 1200));
       try {
         const res = await apiClient.get(`/analytics-api/reports/${attemptId}`);
         if (res && (res.summary || res.metadata)) {
@@ -347,6 +332,7 @@ export const attemptService = {
     return {
       success: true,
       attemptId,
+      status: 'SUBMITTED',
       submittedAt: new Date().toISOString(),
     };
   },

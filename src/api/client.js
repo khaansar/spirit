@@ -109,6 +109,104 @@ const processResponseCookies = async (response) => {
   }
 };
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+const handleTokenRefresh = async (error, clientInstance) => {
+  const originalRequest = error.config;
+  const status = error?.response?.status || error?.status;
+
+  if (
+    status !== 401 ||
+    !originalRequest ||
+    originalRequest._retry ||
+    originalRequest.url?.includes('/auth-api/login') ||
+    originalRequest.url?.includes('/auth-api/refresh')
+  ) {
+    return Promise.reject(normalizeErrorObject(error));
+  }
+
+  if (isRefreshing) {
+    return new Promise((resolve, reject) => {
+      failedQueue.push({ resolve, reject });
+    })
+      .then((token) => {
+        if (token && originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          originalRequest.headers.Cookie = `ACCESS_TOKEN=${token}`;
+        }
+        return clientInstance(originalRequest);
+      })
+      .catch((err) => Promise.reject(err));
+  }
+
+  originalRequest._retry = true;
+  isRefreshing = true;
+
+  try {
+    const refreshToken = await storage.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    const refreshRes = await fetch(`${CONFIG.API_BASE_URL}/auth-api/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Origin': 'http://localhost:3000',
+        'Cookie': `REFRESH_TOKEN=${refreshToken}`,
+      },
+    });
+
+    let newAccessToken = null;
+    let newRefreshToken = null;
+
+    let sc = null;
+    if (typeof refreshRes.headers.getSetCookie === 'function') {
+      sc = refreshRes.headers.getSetCookie().join('; ');
+    } else if (refreshRes.headers.get) {
+      sc = refreshRes.headers.get('set-cookie');
+    }
+
+    if (sc) {
+      newAccessToken = extractCookieValue(sc, 'ACCESS_TOKEN');
+      newRefreshToken = extractCookieValue(sc, 'REFRESH_TOKEN');
+    }
+
+    if (newAccessToken) {
+      await storage.setAccessToken(newAccessToken);
+      if (newRefreshToken) {
+        await storage.setRefreshToken(newRefreshToken);
+      }
+      processQueue(null, newAccessToken);
+
+      if (originalRequest.headers) {
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        originalRequest.headers.Cookie = `ACCESS_TOKEN=${newAccessToken}`;
+      }
+      return clientInstance(originalRequest);
+    } else {
+      throw new Error('Refresh response did not provide a valid access token');
+    }
+  } catch (refreshErr) {
+    processQueue(refreshErr, null);
+    return Promise.reject(normalizeErrorObject(error));
+  } finally {
+    isRefreshing = false;
+  }
+};
+
 apiClient.interceptors.response.use(
   async (response) => {
     await processResponseCookies(response);
@@ -120,7 +218,7 @@ apiClient.interceptors.response.use(
     }
     return response.data;
   },
-  async (error) => Promise.reject(normalizeErrorObject(error))
+  async (error) => handleTokenRefresh(error, apiClient)
 );
 
 apiClientRaw.interceptors.response.use(
@@ -128,7 +226,7 @@ apiClientRaw.interceptors.response.use(
     await processResponseCookies(response);
     return response.data;
   },
-  async (error) => Promise.reject(normalizeErrorObject(error))
+  async (error) => handleTokenRefresh(error, apiClientRaw)
 );
 
 export default apiClient;
