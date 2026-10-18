@@ -35,6 +35,7 @@ export function Input({
         {leftIcon && <View style={styles.leftIconContainer}>{leftIcon}</View>}
 
         <TextInput
+          {...rest}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -43,10 +44,15 @@ export function Input({
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           editable={!disabled}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={(e) => {
+            setIsFocused(true);
+            if (rest.onFocus) rest.onFocus(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            if (rest.onBlur) rest.onBlur(e);
+          }}
           style={[styles.input, inputStyle]}
-          {...rest}
         />
 
         {rightIcon && <View style={styles.rightIconContainer}>{rightIcon}</View>}
@@ -72,7 +78,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.slate[900],
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.slate[800],
     borderRadius: 14,
     height: 52,
@@ -81,11 +87,6 @@ const styles = StyleSheet.create({
   inputWrapperFocused: {
     borderColor: COLORS.brand[500],
     backgroundColor: COLORS.slate[900],
-    shadowColor: COLORS.brand[600],
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 3,
   },
   inputWrapperError: {
     borderColor: COLORS.status.error,

@@ -5,10 +5,10 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { ArrowLeft, Clock, Trophy, CheckCircle2, ChevronRight, FileText } from 'lucide-react-native';
 
