@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import { Mail, ArrowRight, AlertCircle } from 'lucide-react-native';
+import { Mail, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react-native';
 
 import BrandLogo from '../../components/common/BrandLogo';
 import Input from '../../components/common/Input';
@@ -34,6 +34,16 @@ export function LoginScreen({ navigation }) {
   useEffect(() => {
     dispatch(clearAuthError());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (loginStatus === 'succeeded') {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.navigate('MainTabs');
+      }
+    }
+  }, [loginStatus, navigation]);
 
   const validate = () => {
     const errors = {};
@@ -75,6 +85,18 @@ export function LoginScreen({ navigation }) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Top navigation row */}
+          {navigation.canGoBack() && (
+            <TouchableOpacity
+              style={styles.topBackRow}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+            >
+              <ArrowLeft size={18} color={COLORS.slate[300]} />
+              <Text style={styles.topBackText}>Back to Home</Text>
+            </TouchableOpacity>
+          )}
+
           {/* Top Brand Header */}
           <View style={styles.header}>
             <BrandLogo size="lg" showTagline layout="stacked" />
@@ -164,6 +186,21 @@ export function LoginScreen({ navigation }) {
                 Don't have an account?{' '}
                 <Text style={styles.signupHighlight}>Sign Up &rarr;</Text>
               </Text>
+            </TouchableOpacity>
+
+            {/* Guest Browsing Link */}
+            <TouchableOpacity
+              style={styles.guestButton}
+              onPress={() => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate('MainTabs');
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.guestText}>Continue browsing as Guest &rarr;</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -281,6 +318,29 @@ const styles = StyleSheet.create({
   signupHighlight: {
     color: COLORS.brand[400],
     fontWeight: '700',
+  },
+  topBackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 16,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+  },
+  topBackText: {
+    fontSize: 13,
+    color: COLORS.slate[300],
+    fontWeight: '600',
+  },
+  guestButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  guestText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.accent.skyLight,
   },
 });
 

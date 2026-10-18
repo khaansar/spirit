@@ -15,6 +15,9 @@ import SolutionsReviewScreen from '../screens/attempt/SolutionsReviewScreen';
 import LeaderboardScreen from '../screens/leaderboard/LeaderboardScreen';
 import AttemptHistoryScreen from '../screens/history/AttemptHistoryScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import SignupScreen from '../screens/auth/SignupScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 
 import { COLORS } from '../constants/theme';
 
@@ -94,6 +97,9 @@ export function AppNavigator() {
       <Stack.Screen name="SolutionsReview" component={SolutionsReviewScreen} />
       <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
       <Stack.Screen name="AttemptHistory" component={AttemptHistoryScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Signup" component={SignupScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 }

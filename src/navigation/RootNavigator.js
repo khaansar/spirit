@@ -48,7 +48,7 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? <AppNavigator /> : <AuthNavigator />}
+      <AppNavigator />
     </NavigationContainer>
   );
 }

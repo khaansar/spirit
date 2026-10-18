@@ -47,23 +47,51 @@ export function ProfileScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* User Card */}
-        <View style={styles.userCard}>
-          <View style={styles.avatarBox}>
-            <User size={36} color={COLORS.brand[400]} />
+        {/* User / Guest Card */}
+        {!user ? (
+          <View style={styles.guestCard}>
+            <View style={styles.avatarBox}>
+              <User size={36} color={COLORS.brand[400]} />
+            </View>
+            <Text style={styles.guestTitle}>Welcome, Aspirant!</Text>
+            <Text style={styles.guestSubtitle}>
+              Sign in to save your mock attempts, view All-India rankings, and access detailed solutions.
+            </Text>
+            <View style={styles.guestActionsRow}>
+              <TouchableOpacity
+                style={styles.guestLoginButton}
+                onPress={() => navigation.navigate('Login')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.guestLoginText}>Sign In</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.guestSignupButton}
+                onPress={() => navigation.navigate('Signup')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.guestSignupText}>Create Account</Text>
+              </TouchableOpacity>
+            </View>
           </View>
+        ) : (
+          <View style={styles.userCard}>
+            <View style={styles.avatarBox}>
+              <User size={36} color={COLORS.brand[400]} />
+            </View>
 
-          <Text style={styles.userName}>{userName}</Text>
-          <View style={styles.emailRow}>
-            <Mail size={14} color={COLORS.slate[400]} />
-            <Text style={styles.userEmail}>{userEmail}</Text>
-          </View>
+            <Text style={styles.userName}>{userName}</Text>
+            <View style={styles.emailRow}>
+              <Mail size={14} color={COLORS.slate[400]} />
+              <Text style={styles.userEmail}>{userEmail}</Text>
+            </View>
 
-          <View style={styles.roleBadge}>
-            <Shield size={12} color={COLORS.accent.skyLight} />
-            <Text style={styles.roleText}>PREMIUM ASPIRANT</Text>
+            <View style={styles.roleBadge}>
+              <Shield size={12} color={COLORS.accent.skyLight} />
+              <Text style={styles.roleText}>PREMIUM ASPIRANT</Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Quick Activity Navigation */}
         <View style={styles.menuCard}>
@@ -151,15 +179,17 @@ export function ProfileScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Logout Action Button */}
-        <TouchableOpacity
-          style={styles.logoutButton}
-          activeOpacity={0.8}
-          onPress={handleLogout}
-        >
-          <LogOut size={18} color="#f87171" />
-          <Text style={styles.logoutText}>Log Out from Account</Text>
-        </TouchableOpacity>
+        {/* Logout Action Button (only if logged in) */}
+        {user && (
+          <TouchableOpacity
+            style={styles.logoutButton}
+            activeOpacity={0.8}
+            onPress={handleLogout}
+          >
+            <LogOut size={18} color="#f87171" />
+            <Text style={styles.logoutText}>Log Out from Account</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -352,6 +382,63 @@ const styles = StyleSheet.create({
     color: '#f87171',
     fontSize: 15,
     fontWeight: '700',
+  },
+  guestCard: {
+    backgroundColor: COLORS.slate[900],
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.slate[800],
+    marginBottom: 20,
+  },
+  guestTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.common.white,
+    marginTop: 4,
+  },
+  guestSubtitle: {
+    fontSize: 13,
+    color: COLORS.slate[400],
+    textAlign: 'center',
+    lineHeight: 19,
+    marginTop: 8,
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  guestActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  guestLoginButton: {
+    flex: 1,
+    backgroundColor: COLORS.brand[600],
+    borderRadius: 14,
+    height: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  guestLoginText: {
+    color: COLORS.common.white,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  guestSignupButton: {
+    flex: 1,
+    backgroundColor: COLORS.slate[800],
+    borderRadius: 14,
+    height: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.slate[700],
+  },
+  guestSignupText: {
+    color: COLORS.slate[200],
+    fontWeight: '700',
+    fontSize: 14,
   },
 });
 
