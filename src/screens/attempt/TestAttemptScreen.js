@@ -32,6 +32,7 @@ import {
   setPaletteOpen,
   setSubmitModalOpen,
   submitAttemptThunk,
+  saveAnswerThunk,
 } from '../../store/slices/attemptSlice';
 
 export function TestAttemptScreen({ route, navigation }) {
@@ -189,11 +190,27 @@ export function TestAttemptScreen({ route, navigation }) {
           onSelectOption={(optionId, isMulti) => {
             if (currentQuestion) {
               dispatch(selectAnswer({ questionId: currentQuestion.id, optionId, isMulti }));
+              dispatch(
+                saveAnswerThunk({
+                  questionId: currentQuestion.id,
+                  selectedOption: optionId,
+                  currentQuestionIndex,
+                  currentSectionId: currentSection?.id,
+                })
+              );
             }
           }}
           onClearOption={() => {
             if (currentQuestion) {
               dispatch(clearAnswer({ questionId: currentQuestion.id }));
+              dispatch(
+                saveAnswerThunk({
+                  questionId: currentQuestion.id,
+                  selectedOption: null,
+                  currentQuestionIndex,
+                  currentSectionId: currentSection?.id,
+                })
+              );
             }
           }}
           onToggleMark={() => {

@@ -150,8 +150,11 @@ export const attemptService = {
    */
   async getAttemptState(attemptId, testId) {
     let attemptRes = null;
+    let attemptVersion = 0;
     try {
-      attemptRes = await apiClient.get(`/attempts-api/${attemptId}`);
+      const rawRes = await apiClientRaw.get(`/attempts-api/${attemptId}`);
+      attemptRes = rawRes?.data || rawRes || {};
+      attemptVersion = rawRes?.meta?.attemptVersion ?? attemptRes?.attemptVersion ?? 0;
     } catch (e) {
       console.warn('Could not fetch attempt state directly:', e?.message);
     }
@@ -200,27 +203,54 @@ export const attemptService = {
       durationMinutes: structureRes.totalDurationMinutes || 60,
       sections,
       serverAnswers: attemptRes?.answers || {},
+      attemptVersion,
     };
   },
 
   /**
    * Saves student answer responses using the exact Baahubali PatchAttemptRequest schema.
+   * Automatically handles optimistic lock conflicts (409) with authoritative version reload.
    */
   async saveResponse(attemptId, { questionId, selectedOption, currentQuestionIndex = 0, version = 0, currentSectionId = null }) {
-    try {
-      const payload = {
-        questionId,
-        selectedOption: selectedOption || null,
-        currentQuestionIndex: Number(currentQuestionIndex) || 0,
-        version: Number(version) || 0,
-      };
-      if (currentSectionId) {
-        payload.currentSectionId = currentSectionId;
+    const payload = {
+      questionId,
+      selectedOption: selectedOption || null,
+      currentQuestionIndex: Number(currentQuestionIndex) || 0,
+      version: Number(version) || 0,
+    };
+    if (currentSectionId) {
+      payload.currentSectionId = currentSectionId;
+    }
+
+    let conflictRetries = 0;
+    const MAX_CONFLICT_RETRIES = 3;
+
+    while (true) {
+      try {
+        const rawRes = await apiClientRaw.patch(`/attempts-api/${attemptId}`, payload);
+        const newVer = rawRes?.meta?.attemptVersion ?? rawRes?.data?.attemptVersion;
+        return {
+          success: true,
+          attemptVersion: Number.isFinite(newVer) ? newVer : (payload.version + 1),
+          data: rawRes?.data || rawRes,
+        };
+      } catch (err) {
+        if (err?.status === 409 && conflictRetries < MAX_CONFLICT_RETRIES) {
+          conflictRetries++;
+          try {
+            const freshRaw = await apiClientRaw.get(`/attempts-api/${attemptId}`);
+            const freshVer = freshRaw?.meta?.attemptVersion ?? freshRaw?.data?.attemptVersion;
+            if (Number.isFinite(freshVer)) {
+              payload.version = freshVer;
+              continue;
+            }
+          } catch (freshErr) {
+            console.warn('Failed to refresh attempt version:', freshErr?.message);
+          }
+        }
+        console.warn(`Error saving response for question ${questionId}:`, err?.message);
+        throw err;
       }
-      return await apiClient.patch(`/attempts-api/${attemptId}`, payload);
-    } catch (err) {
-      console.warn(`Error saving response for question ${questionId}:`, err?.message);
-      return { success: false };
     }
   },
 
@@ -233,24 +263,50 @@ export const attemptService = {
       const questionEntries = Object.entries(payload.responses);
       let currentVersion = Number(payload.version) || 0;
 
+      // Reload latest authoritative attempt version before flushing
+      try {
+        const freshRaw = await apiClientRaw.get(`/attempts-api/${attemptId}`);
+        const freshVer = freshRaw?.meta?.attemptVersion ?? freshRaw?.data?.attemptVersion;
+        if (Number.isFinite(freshVer)) {
+          currentVersion = freshVer;
+        }
+      } catch (_) {}
+
       for (let idx = 0; idx < questionEntries.length; idx++) {
         const [qId, resp] = questionEntries[idx];
-        if (resp?.selected && resp.selected.length > 0) {
+        if (resp?.selected && resp.selected.length > 0 && resp.saveState !== 'synced') {
           const selectedOption = resp.selected[0];
-          try {
-            const patchRes = await apiClient.patch(`/attempts-api/${attemptId}`, {
-              questionId: qId,
-              selectedOption,
-              currentQuestionIndex: idx,
-              version: currentVersion,
-            });
-            if (patchRes?.meta?.attemptVersion != null) {
-              currentVersion = patchRes.meta.attemptVersion;
-            } else {
-              currentVersion++;
+          let retries = 0;
+          while (retries < 3) {
+            try {
+              const patchRes = await apiClientRaw.patch(`/attempts-api/${attemptId}`, {
+                questionId: qId,
+                selectedOption,
+                currentQuestionIndex: idx,
+                version: currentVersion,
+              });
+              const newVer = patchRes?.meta?.attemptVersion ?? patchRes?.data?.attemptVersion;
+              if (Number.isFinite(newVer)) {
+                currentVersion = newVer;
+              } else {
+                currentVersion++;
+              }
+              break;
+            } catch (e) {
+              if (e?.status === 409) {
+                retries++;
+                try {
+                  const freshRaw = await apiClientRaw.get(`/attempts-api/${attemptId}`);
+                  const freshVer = freshRaw?.meta?.attemptVersion ?? freshRaw?.data?.attemptVersion;
+                  if (Number.isFinite(freshVer)) {
+                    currentVersion = freshVer;
+                    continue;
+                  }
+                } catch (_) {}
+              }
+              console.warn(`Could not sync answer for question ${qId}:`, e?.message);
+              break;
             }
-          } catch (e) {
-            console.warn(`Could not sync answer for question ${qId}:`, e?.message);
           }
         }
       }
@@ -261,10 +317,10 @@ export const attemptService = {
 
     // 3. Poll for the evaluated report card (analytics-service computes rank/percentiles asynchronously via Kafka)
     let report = null;
-    const maxRetries = 4;
+    const maxRetries = 5;
     for (let i = 0; i < maxRetries; i++) {
-      // Wait before polling: Kafka consumer takes ~1.5 seconds to compute
-      await new Promise((resolve) => setTimeout(resolve, i === 0 ? 1500 : 1200));
+      // Wait before polling: Kafka consumer takes ~1.5 to 2.5 seconds to compute
+      await new Promise((resolve) => setTimeout(resolve, i === 0 ? 1800 : 1200));
       try {
         const res = await apiClient.get(`/analytics-api/reports/${attemptId}`);
         if (res && (res.summary || res.metadata)) {

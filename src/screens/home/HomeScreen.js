@@ -31,6 +31,8 @@ import {
   BarChart2,
   Trophy,
   BookOpen,
+  Receipt,
+  User,
 } from 'lucide-react-native';
 
 import BrandLogo from '../../components/common/BrandLogo';
@@ -345,6 +347,36 @@ export function HomeScreen({ navigation }) {
                 <Text style={styles.metricValue}>#142</Text>
                 <Text style={styles.metricLabel}>All-India Rank</Text>
               </View>
+            </View>
+
+            {/* Quick Access Strip */}
+            <View style={styles.quickAccessRow}>
+              <TouchableOpacity
+                style={styles.quickAccessPill}
+                onPress={() => navigation.navigate('AttemptHistory')}
+                activeOpacity={0.7}
+              >
+                <FileText size={13} color={COLORS.brand[400]} />
+                <Text style={styles.quickAccessText}>Past Attempts</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickAccessPill}
+                onPress={() => navigation.navigate('OrdersPayments')}
+                activeOpacity={0.7}
+              >
+                <Receipt size={13} color={COLORS.status.success} />
+                <Text style={styles.quickAccessText}>My Passes</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickAccessPill}
+                onPress={() => navigation.navigate('ProfileTab')}
+                activeOpacity={0.7}
+              >
+                <User size={13} color="#3b82f6" />
+                <Text style={styles.quickAccessText}>My Profile</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -1296,6 +1328,28 @@ const styles = StyleSheet.create({
     color: COLORS.common.white,
     fontWeight: '700',
     fontSize: 13,
+  },
+  quickAccessRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  quickAccessPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.slate[900],
+    borderWidth: 1,
+    borderColor: COLORS.slate[800],
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  quickAccessText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.slate[300],
   },
 });
 

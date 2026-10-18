@@ -131,6 +131,23 @@ export const restoreSession = createAsyncThunk(
   }
 );
 
+// Async Thunk: Fetch Current User Profile
+export const fetchCurrentUser = createAsyncThunk(
+  'auth/fetchCurrentUser',
+  async (_, { rejectWithValue }) => {
+    try {
+      const userData = await apiClient.get('/auth-api/users/me');
+      const user = userData?.user || userData;
+      if (user) {
+        await storage.setItem('clearit_user', JSON.stringify(user));
+      }
+      return user;
+    } catch (err) {
+      return rejectWithValue(getErrorMessage(err, 'Failed to fetch user profile.'));
+    }
+  }
+);
+
 // Async Thunk: Logout
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
@@ -177,9 +194,21 @@ const authSlice = createSlice({
       state.isAuthenticated = !!action.payload;
       state.isRestoringSession = false;
     },
+    updateUser(state, action) {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
+      // FETCH CURRENT USER
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.user = action.payload;
+          state.isAuthenticated = true;
+        }
+      })
       // LOGIN
       .addCase(loginUser.pending, (state) => {
         state.loginStatus = 'loading';
@@ -259,5 +288,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearAuthError, resetAuthStatus, setUser } = authSlice.actions;
+export const { clearAuthError, resetAuthStatus, setUser, updateUser } = authSlice.actions;
 export default authSlice.reducer;

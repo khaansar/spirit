@@ -89,6 +89,9 @@ const processResponseCookies = async (response) => {
 apiClient.interceptors.response.use(
   async (response) => {
     await processResponseCookies(response);
+    if (response.config?.preserveResponseEnvelope) {
+      return response.data;
+    }
     if (response?.data?.data !== undefined) {
       return response.data.data;
     }
@@ -100,7 +103,7 @@ apiClient.interceptors.response.use(
 apiClientRaw.interceptors.response.use(
   async (response) => {
     await processResponseCookies(response);
-    return response;
+    return response.data;
   },
   async (error) => Promise.reject(normalizeErrorObject(error))
 );

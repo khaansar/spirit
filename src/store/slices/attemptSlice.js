@@ -25,6 +25,32 @@ export const startAttemptThunk = createAsyncThunk(
   }
 );
 
+export const saveAnswerThunk = createAsyncThunk(
+  'attempt/saveAnswer',
+  async ({ questionId, selectedOption, currentQuestionIndex = 0, currentSectionId = null }, { getState, dispatch, rejectWithValue }) => {
+    try {
+      const { attempt } = getState();
+      const attemptId = attempt.attemptId;
+      if (!attemptId || String(attemptId).startsWith('att-sample')) {
+        return { questionId, version: attempt.attemptVersion };
+      }
+      const res = await attemptService.saveResponse(attemptId, {
+        questionId,
+        selectedOption,
+        currentQuestionIndex,
+        version: attempt.attemptVersion || 0,
+        currentSectionId,
+      });
+      if (Number.isFinite(res?.attemptVersion)) {
+        dispatch(attemptSlice.actions.updateAttemptVersion(res.attemptVersion));
+      }
+      return { questionId, version: res?.attemptVersion };
+    } catch (err) {
+      return rejectWithValue({ questionId, message: err?.message });
+    }
+  }
+);
+
 export const submitAttemptThunk = createAsyncThunk(
   'attempt/submitAttempt',
   async (_, { getState, rejectWithValue }) => {
@@ -52,7 +78,7 @@ const initialState = {
   sections: [],
   currentSectionIndex: 0,
   currentQuestionIndex: 0,
-  responses: {}, // { [qId]: { selected: ['A'], marked: false, visited: true } }
+  responses: {}, // { [qId]: { selected: ['A'], marked: false, visited: true, saveState: 'synced' | 'pending' } }
   attemptVersion: 0,
   status: 'idle', // 'idle' | 'loading' | 'active' | 'submitting' | 'submitted' | 'error'
   isPaletteOpen: false,
@@ -87,6 +113,7 @@ const attemptSlice = createSlice({
       state.testTitle = data.title || 'Mock Test';
       state.durationMinutes = data.durationMinutes || 60;
       state.timeRemainingSeconds = (data.durationMinutes || 60) * 60;
+      state.attemptVersion = Number.isFinite(data.attemptVersion) ? data.attemptVersion : 0;
 
       const hasQuestions =
         Array.isArray(data.sections) &&
@@ -100,10 +127,22 @@ const attemptSlice = createSlice({
       state.isPaletteOpen = false;
       state.isSubmitModalOpen = false;
 
+      // Populate server answers if already stored
+      if (data.serverAnswers && typeof data.serverAnswers === 'object') {
+        Object.entries(data.serverAnswers).forEach(([qId, val]) => {
+          state.responses[qId] = {
+            selected: val ? [val] : [],
+            marked: false,
+            visited: true,
+            saveState: 'synced',
+          };
+        });
+      }
+
       // Mark the first question as visited
       const firstQId = state.sections?.[0]?.questions?.[0]?.id;
-      if (firstQId) {
-        state.responses[firstQId] = { selected: [], marked: false, visited: true };
+      if (firstQId && !state.responses[firstQId]) {
+        state.responses[firstQId] = { selected: [], marked: false, visited: true, saveState: 'synced' };
       }
     },
 
@@ -111,6 +150,7 @@ const attemptSlice = createSlice({
       const { questionId, optionId, isMulti = false } = action.payload;
       const existing = state.responses[questionId] || { selected: [], marked: false, visited: true };
 
+      let updatedSelected = [];
       if (isMulti) {
         const set = new Set(existing.selected || []);
         if (set.has(optionId)) {
@@ -118,24 +158,24 @@ const attemptSlice = createSlice({
         } else {
           set.add(optionId);
         }
-        state.responses[questionId] = {
-          ...existing,
-          selected: Array.from(set),
-          visited: true,
-        };
+        updatedSelected = Array.from(set);
       } else {
-        state.responses[questionId] = {
-          ...existing,
-          selected: [optionId],
-          visited: true,
-        };
+        updatedSelected = [optionId];
       }
+
+      state.responses[questionId] = {
+        ...existing,
+        selected: updatedSelected,
+        visited: true,
+        saveState: 'pending',
+      };
     },
 
     clearAnswer(state, action) {
       const { questionId } = action.payload;
       if (state.responses[questionId]) {
         state.responses[questionId].selected = [];
+        state.responses[questionId].saveState = 'pending';
       }
     },
 
@@ -247,12 +287,15 @@ const attemptSlice = createSlice({
         state.currentSectionIndex = 0;
         state.currentQuestionIndex = 0;
         state.responses = {};
+        state.attemptVersion = Number.isFinite(data.attemptVersion) ? data.attemptVersion : 0;
+
         if (data.serverAnswers && typeof data.serverAnswers === 'object') {
           Object.entries(data.serverAnswers).forEach(([qId, val]) => {
             state.responses[qId] = {
               selected: val ? [val] : [],
               marked: false,
               visited: true,
+              saveState: 'synced',
             };
           });
         }
@@ -260,12 +303,29 @@ const attemptSlice = createSlice({
 
         const firstQId = data.sections?.[0]?.questions?.[0]?.id;
         if (firstQId && !state.responses[firstQId]) {
-          state.responses[firstQId] = { selected: [], marked: false, visited: true };
+          state.responses[firstQId] = { selected: [], marked: false, visited: true, saveState: 'synced' };
         }
       })
       .addCase(startAttemptThunk.rejected, (state, action) => {
         state.status = 'error';
         state.error = action.payload;
+      })
+
+      // REAL-TIME ANSWER SAVE
+      .addCase(saveAnswerThunk.fulfilled, (state, action) => {
+        const { questionId, version } = action.payload;
+        if (Number.isFinite(version)) {
+          state.attemptVersion = version;
+        }
+        if (state.responses[questionId]) {
+          state.responses[questionId].saveState = 'synced';
+        }
+      })
+      .addCase(saveAnswerThunk.rejected, (state, action) => {
+        const qId = action.payload?.questionId || action.meta?.arg?.questionId;
+        if (qId && state.responses[qId]) {
+          state.responses[qId].saveState = 'pending';
+        }
       })
 
       // SUBMIT ATTEMPT

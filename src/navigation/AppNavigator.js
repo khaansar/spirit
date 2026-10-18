@@ -18,6 +18,9 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import AccountSettingsScreen from '../screens/settings/AccountSettingsScreen';
+import OrdersPaymentsScreen from '../screens/payments/OrdersPaymentsScreen';
+import FaqScreen from '../screens/help/FaqScreen';
 
 import { COLORS } from '../constants/theme';
 
@@ -100,6 +103,9 @@ export function AppNavigator() {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
+      <Stack.Screen name="OrdersPayments" component={OrdersPaymentsScreen} />
+      <Stack.Screen name="Faqs" component={FaqScreen} />
     </Stack.Navigator>
   );
 }
