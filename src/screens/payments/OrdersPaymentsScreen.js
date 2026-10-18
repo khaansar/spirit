@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,12 +20,18 @@ import {
   CheckCircle2,
   AlertCircle,
   BookOpen,
+  Sun,
+  Moon,
 } from 'lucide-react-native';
 
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { paymentService } from '../../api/paymentService';
 
 export function OrdersPaymentsScreen({ navigation }) {
+  const { theme, isDark, toggleTheme } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+
   const [activeTab, setActiveTab] = useState('entitlements'); // 'entitlements' | 'orders'
   const [entitlements, setEntitlements] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -72,7 +78,7 @@ export function OrdersPaymentsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       {/* Top Header */}
       <View style={styles.topBar}>
@@ -81,10 +87,16 @@ export function OrdersPaymentsScreen({ navigation }) {
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={20} color={COLORS.slate[200]} />
+          <ArrowLeft size={20} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>Orders & Payments</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          {isDark ? <Sun size={18} color="#fbbf24" /> : <Moon size={18} color={COLORS.brand[600]} />}
+        </TouchableOpacity>
       </View>
 
       {/* Tab Switcher */}
@@ -96,7 +108,7 @@ export function OrdersPaymentsScreen({ navigation }) {
         >
           <ShieldCheck
             size={16}
-            color={activeTab === 'entitlements' ? COLORS.brand[400] : COLORS.slate[400]}
+            color={activeTab === 'entitlements' ? COLORS.brand[400] : theme.colors.textSecondary}
           />
           <Text
             style={[
@@ -115,7 +127,7 @@ export function OrdersPaymentsScreen({ navigation }) {
         >
           <Receipt
             size={16}
-            color={activeTab === 'orders' ? COLORS.brand[400] : COLORS.slate[400]}
+            color={activeTab === 'orders' ? COLORS.brand[400] : theme.colors.textSecondary}
           />
           <Text
             style={[
@@ -294,195 +306,203 @@ export function OrdersPaymentsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-    backgroundColor: COLORS.slate[950],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.slate[900],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topBarTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.slate[900],
-    padding: 4,
-    marginHorizontal: 16,
-    marginVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  tabBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 8,
-  },
-  tabBtnActive: {
-    backgroundColor: COLORS.slate[950],
-    borderWidth: 1,
-    borderColor: COLORS.slate[700],
-  },
-  tabBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.slate[400],
-  },
-  tabBtnTextActive: {
-    color: COLORS.common.white,
-  },
-  centerContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: COLORS.slate[400],
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  itemCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 14,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  itemBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  productType: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    fontWeight: '600',
-  },
-  orderId: {
-    fontSize: 12,
-    fontFamily: 'monospace',
-    color: COLORS.slate[400],
-    fontWeight: '600',
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    marginBottom: 10,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginVertical: 8,
-  },
-  priceLabel: {
-    fontSize: 13,
-    color: COLORS.slate[400],
-  },
-  priceValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: COLORS.status.success,
-  },
-  itemDetailsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 6,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  detailText: {
-    fontSize: 12,
-    color: COLORS.slate[400],
-  },
-  emptyCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 16,
-    padding: 32,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginTop: 20,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    marginTop: 14,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: COLORS.slate[400],
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 18,
-  },
-  exploreBtn: {
-    marginTop: 20,
-    backgroundColor: COLORS.brand[600],
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  exploreBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.common.white,
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.bg,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    topBarTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    tabContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.colors.card,
+      padding: 4,
+      marginHorizontal: 16,
+      marginVertical: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    tabBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 10,
+      borderRadius: 8,
+      gap: 8,
+    },
+    tabBtnActive: {
+      backgroundColor: isDark ? COLORS.slate[950] : COLORS.common.white,
+      borderWidth: 1,
+      borderColor: isDark ? COLORS.slate[700] : COLORS.slate[300],
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    tabBtnText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.colors.textSecondary,
+    },
+    tabBtnTextActive: {
+      color: theme.colors.text,
+    },
+    centerContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 40,
+    },
+    itemCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginBottom: 14,
+    },
+    itemHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    itemBadgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    statusBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+    },
+    productType: {
+      fontSize: 11,
+      color: theme.colors.textSecondary,
+      fontWeight: '600',
+    },
+    orderId: {
+      fontSize: 12,
+      fontFamily: 'monospace',
+      color: theme.colors.textSecondary,
+      fontWeight: '600',
+    },
+    itemTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginBottom: 10,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: theme.colors.border,
+      marginVertical: 8,
+    },
+    priceLabel: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+    },
+    priceValue: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: COLORS.status.success,
+    },
+    itemDetailsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 6,
+    },
+    detailItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    detailText: {
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+    },
+    emptyCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 16,
+      padding: 32,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginTop: 20,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginTop: 14,
+    },
+    emptySubtitle: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+      marginTop: 8,
+      lineHeight: 18,
+    },
+    exploreBtn: {
+      marginTop: 20,
+      backgroundColor: COLORS.brand[600],
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 10,
+    },
+    exploreBtnText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: COLORS.common.white,
+    },
+  });
 
 export default OrdersPaymentsScreen;

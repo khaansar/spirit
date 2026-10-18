@@ -35,9 +35,12 @@ import {
   BookOpen,
   AlertTriangle,
   Lightbulb,
+  Sun,
+  Moon,
 } from 'lucide-react-native';
 
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { logoutUser, fetchCurrentUser } from '../../store/slices/authSlice';
 import { analyticsService } from '../../api/analyticsService';
 import { historyService } from '../../api/historyService';
@@ -45,6 +48,8 @@ import { historyService } from '../../api/historyService';
 export function ProfileScreen({ navigation }) {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const { theme, isDark, toggleTheme } = useTheme();
+  const styles = React.useMemo(() => getStyles(theme, isDark), [theme, isDark]);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,26 +62,34 @@ export function ProfileScreen({ navigation }) {
 
   const loadProfileData = useCallback(async () => {
     try {
-      const [streakRes, perfRes, topicRes, historyRes] = await Promise.allSettled([
-        analyticsService.getYearlyStreak(),
-        analyticsService.getUserPerformance(),
-        analyticsService.getUserTopicPerformance(),
-        historyService.getAttemptHistory(),
+      const safeFetch = async (fn) => {
+        try {
+          return await fn();
+        } catch {
+          return null;
+        }
+      };
+
+      const [streakRes, perfRes, topicRes, historyRes] = await Promise.all([
+        safeFetch(() => analyticsService.getYearlyStreak()),
+        safeFetch(() => analyticsService.getUserPerformance()),
+        safeFetch(() => analyticsService.getUserTopicPerformance()),
+        safeFetch(() => historyService.getAttemptHistory()),
       ]);
 
-      if (streakRes.status === 'fulfilled' && streakRes.value) {
-        setStreakData(streakRes.value);
+      if (streakRes) {
+        setStreakData(streakRes);
       }
-      if (perfRes.status === 'fulfilled' && perfRes.value) {
-        setPerformanceData(perfRes.value);
+      if (perfRes) {
+        setPerformanceData(perfRes);
       }
-      if (topicRes.status === 'fulfilled' && topicRes.value) {
-        setTopicData(topicRes.value);
+      if (topicRes) {
+        setTopicData(topicRes);
       }
-      if (historyRes.status === 'fulfilled' && historyRes.value) {
-        const items = Array.isArray(historyRes.value)
-          ? historyRes.value
-          : historyRes.value?.items || historyRes.value?.content || [];
+      if (historyRes) {
+        const items = Array.isArray(historyRes)
+          ? historyRes
+          : historyRes?.items || historyRes?.content || [];
         setRecentAttempts(items.slice(0, 5));
       }
     } catch (err) {
@@ -207,18 +220,27 @@ export function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       {/* Top App Bar */}
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>My Profile</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('AccountSettings')}
-          style={styles.settingsIconBtn}
-          activeOpacity={0.7}
-        >
-          <Settings size={20} color={COLORS.slate[300]} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <TouchableOpacity
+            onPress={toggleTheme}
+            style={styles.settingsIconBtn}
+            activeOpacity={0.7}
+          >
+            {isDark ? <Sun size={18} color="#fbbf24" /> : <Moon size={18} color={COLORS.brand[600]} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('AccountSettings')}
+            style={styles.settingsIconBtn}
+            activeOpacity={0.7}
+          >
+            <Settings size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -373,6 +395,28 @@ export function ProfileScreen({ navigation }) {
               </View>
             </View>
             <ChevronRight size={18} color={COLORS.slate[500]} />
+          </TouchableOpacity>
+
+          <View style={styles.rowDivider} />
+
+          {/* Appearance / Theme Mode */}
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={toggleTheme}
+            activeOpacity={0.7}
+          >
+            <View style={styles.actionLeft}>
+              <View style={[styles.actionIconBox, { backgroundColor: isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(94, 67, 243, 0.15)' }]}>
+                {isDark ? <Sun size={18} color="#fbbf24" /> : <Moon size={18} color={COLORS.brand[600]} />}
+              </View>
+              <View>
+                <Text style={styles.actionTitle}>Appearance</Text>
+                <Text style={styles.actionSub}>{isDark ? 'Dark Mode (Tap to switch to Light)' : 'Light Mode (Tap to switch to Dark)'}</Text>
+              </View>
+            </View>
+            <View style={styles.themeBadge}>
+              <Text style={styles.themeBadgeText}>{isDark ? 'Dark' : 'Light'}</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -624,517 +668,558 @@ export function ProfileScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-    backgroundColor: COLORS.slate[950],
-  },
-  topBarTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  settingsIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.slate[900],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  profileHeaderCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 16,
-  },
-  profileMainRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 16,
-  },
-  avatarLarge: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: 'rgba(94, 67, 243, 0.2)',
-    borderWidth: 2,
-    borderColor: COLORS.brand[400],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarLargeText: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: COLORS.brand[400],
-  },
-  profileInfoBlock: {
-    flex: 1,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  profileFullName: {
-    fontSize: 19,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  targetExamText: {
-    fontSize: 13,
-    color: COLORS.brand[400],
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  quoteText: {
-    fontSize: 12,
-    color: COLORS.slate[400],
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 8,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-  },
-  prepCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(94, 67, 243, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(94, 67, 243, 0.2)',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 16,
-  },
-  prepLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  prepIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: 'rgba(94, 67, 243, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  prepSub: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: COLORS.brand[400],
-    letterSpacing: 0.5,
-  },
-  prepTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    marginTop: 2,
-  },
-  prepDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: COLORS.slate[700],
-    marginHorizontal: 12,
-  },
-  prepRight: {
-    alignItems: 'center',
-  },
-  prepDays: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  prepDaysLabel: {
-    fontSize: 10,
-    color: COLORS.slate[400],
-  },
-  actionHubCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 16,
-  },
-  sectionHeaderTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.slate[400],
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-  },
-  actionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  actionIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.common.white,
-  },
-  actionSub: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-  rowDivider: {
-    height: 1,
-    backgroundColor: COLORS.slate[800],
-    marginVertical: 2,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 16,
-  },
-  statCard: {
-    width: '48.5%',
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  statIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.slate[400],
-    fontWeight: '500',
-  },
-  statVal: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.common.white,
-    marginTop: 2,
-  },
-  statSub: {
-    fontSize: 10,
-    color: COLORS.slate[500],
-    marginTop: 2,
-  },
-  statTrendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  statTrendText: {
-    fontSize: 10,
-    color: COLORS.status.success,
-    fontWeight: '600',
-  },
-  streakCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 16,
-  },
-  streakHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  streakTitleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  streakTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  streakCountBadge: {
-    backgroundColor: 'rgba(249, 115, 22, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  streakCountText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#f97316',
-  },
-  streakNumbersRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 12,
-  },
-  streakStat: {
-    alignItems: 'center',
-  },
-  streakNumVal: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  streakNumLbl: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-  streakDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: COLORS.slate[800],
-  },
-  heatmapBox: {
-    marginTop: 4,
-  },
-  heatmapSubtitle: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    marginBottom: 8,
-  },
-  heatmapGrid: {
-    gap: 4,
-  },
-  heatRow: {
-    flexDirection: 'row',
-    gap: 4,
-    justifyContent: 'space-between',
-  },
-  heatDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 3,
-  },
-  sectionBlockCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 16,
-  },
-  blockTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
-  },
-  blockTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  subjectRow: {
-    marginBottom: 12,
-  },
-  subjectHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  subjectName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.slate[200],
-  },
-  subjectScore: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  progressBarTrack: {
-    height: 6,
-    backgroundColor: COLORS.slate[800],
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  subjectMeta: {
-    fontSize: 10,
-    color: COLORS.slate[500],
-    marginTop: 3,
-  },
-  aiInsightBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 14,
-  },
-  aiInsightText: {
-    flex: 1,
-    fontSize: 12,
-    color: COLORS.slate[300],
-    lineHeight: 18,
-  },
-  swGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  swCol: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-    borderRadius: 12,
-    padding: 12,
-  },
-  swColTitleGreen: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.status.success,
-    marginBottom: 8,
-  },
-  swColTitleAmber: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#f59e0b',
-    marginBottom: 8,
-  },
-  swItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  swText: {
-    fontSize: 11,
-    color: COLORS.slate[300],
-  },
-  noRecentBox: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  noRecentText: {
-    fontSize: 13,
-    color: COLORS.slate[400],
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  recentItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-  },
-  recentLeft: {
-    flex: 1,
-    marginRight: 10,
-  },
-  recentTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.common.white,
-  },
-  recentDate: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-  recentRight: {
-    alignItems: 'flex-end',
-    gap: 6,
-  },
-  recentScore: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  recentBtn: {
-    backgroundColor: 'rgba(94, 67, 243, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  recentBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.brand[400],
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
-    borderRadius: 14,
-    paddingVertical: 14,
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  logoutText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.status.error,
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.topBarBg,
+    },
+    topBarTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    settingsIconBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 40,
+    },
+    profileHeaderCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    profileMainRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 16,
+    },
+    avatarLarge: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      backgroundColor: 'rgba(94, 67, 243, 0.2)',
+      borderWidth: 2,
+      borderColor: COLORS.brand[400],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarLargeText: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: COLORS.brand[400],
+    },
+    profileInfoBlock: {
+      flex: 1,
+    },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    profileFullName: {
+      fontSize: 19,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    targetExamText: {
+      fontSize: 13,
+      color: COLORS.brand[400],
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    quoteText: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      fontStyle: 'italic',
+      marginTop: 4,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 12,
+      marginTop: 8,
+    },
+    metaItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    metaText: {
+      fontSize: 11,
+      color: theme.colors.textMuted,
+    },
+    prepCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: isDark ? 'rgba(94, 67, 243, 0.08)' : 'rgba(94, 67, 243, 0.05)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(94, 67, 243, 0.2)' : 'rgba(94, 67, 243, 0.15)',
+      borderRadius: 12,
+      padding: 12,
+      marginTop: 16,
+    },
+    prepLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flex: 1,
+    },
+    prepIconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: 8,
+      backgroundColor: 'rgba(94, 67, 243, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    prepSub: {
+      fontSize: 9,
+      fontWeight: '700',
+      color: COLORS.brand[400],
+      letterSpacing: 0.5,
+    },
+    prepTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginTop: 2,
+    },
+    prepDivider: {
+      width: 1,
+      height: 28,
+      backgroundColor: theme.colors.divider,
+      marginHorizontal: 12,
+    },
+    prepRight: {
+      alignItems: 'center',
+    },
+    prepDays: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: theme.colors.text,
+    },
+    prepDaysLabel: {
+      fontSize: 10,
+      color: theme.colors.textMuted,
+    },
+    actionHubCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 18,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    sectionHeaderTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      marginBottom: 12,
+      paddingHorizontal: 4,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: 4,
+    },
+    actionLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      flex: 1,
+    },
+    actionIconBox: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    actionTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.colors.text,
+    },
+    actionSub: {
+      fontSize: 11,
+      color: theme.colors.textMuted,
+      marginTop: 2,
+    },
+    rowDivider: {
+      height: 1,
+      backgroundColor: theme.colors.divider,
+      marginVertical: 2,
+    },
+    themeBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: theme.colors.badgeBg,
+      borderWidth: 1,
+      borderColor: theme.colors.badgeBorder,
+    },
+    themeBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.colors.accentLight,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginBottom: 16,
+    },
+    statCard: {
+      width: '48.5%',
+      backgroundColor: theme.colors.card,
+      borderRadius: 16,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    statIconBadge: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      fontWeight: '500',
+    },
+    statVal: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: theme.colors.text,
+      marginTop: 2,
+    },
+    statSub: {
+      fontSize: 10,
+      color: theme.colors.textMuted,
+      marginTop: 2,
+    },
+    statTrendRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 2,
+    },
+    statTrendText: {
+      fontSize: 10,
+      color: theme.colors.statusSuccess,
+      fontWeight: '600',
+    },
+    streakCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 18,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    streakHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    streakTitleLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    streakTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    streakCountBadge: {
+      backgroundColor: 'rgba(249, 115, 22, 0.15)',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+    },
+    streakCountText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#f97316',
+    },
+    streakNumbersRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-around',
+      paddingVertical: 12,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: theme.colors.divider,
+      marginBottom: 12,
+    },
+    streakStat: {
+      alignItems: 'center',
+    },
+    streakNumVal: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: theme.colors.text,
+    },
+    streakNumLbl: {
+      fontSize: 11,
+      color: theme.colors.textMuted,
+      marginTop: 2,
+    },
+    streakDivider: {
+      width: 1,
+      height: 24,
+      backgroundColor: theme.colors.divider,
+    },
+    heatmapBox: {
+      marginTop: 4,
+    },
+    heatmapSubtitle: {
+      fontSize: 11,
+      color: theme.colors.textMuted,
+      marginBottom: 8,
+    },
+    heatmapGrid: {
+      gap: 4,
+    },
+    heatRow: {
+      flexDirection: 'row',
+      gap: 4,
+      justifyContent: 'space-between',
+    },
+    heatDot: {
+      width: 14,
+      height: 14,
+      borderRadius: 3,
+    },
+    sectionBlockCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 18,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    blockTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 14,
+    },
+    blockTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    subjectRow: {
+      marginBottom: 12,
+    },
+    subjectHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    subjectName: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.colors.textSecondary,
+    },
+    subjectScore: {
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    progressBarTrack: {
+      height: 6,
+      backgroundColor: theme.colors.cardInner,
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    progressBarFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
+    subjectMeta: {
+      fontSize: 10,
+      color: theme.colors.textMuted,
+      marginTop: 3,
+    },
+    aiInsightBox: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : '#fffbeb',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(245, 158, 11, 0.25)' : '#fde68a',
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 14,
+    },
+    aiInsightText: {
+      flex: 1,
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+      lineHeight: 18,
+    },
+    swGrid: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    swCol: {
+      flex: 1,
+      backgroundColor: theme.colors.cardInner,
+      borderRadius: 12,
+      padding: 12,
+    },
+    swColTitleGreen: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.colors.statusSuccess,
+      marginBottom: 8,
+    },
+    swColTitleAmber: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#f59e0b',
+      marginBottom: 8,
+    },
+    swItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 6,
+    },
+    swText: {
+      fontSize: 11,
+      color: theme.colors.textSecondary,
+    },
+    noRecentBox: {
+      padding: 16,
+      alignItems: 'center',
+    },
+    noRecentText: {
+      fontSize: 13,
+      color: theme.colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+    recentItemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.divider,
+    },
+    recentLeft: {
+      flex: 1,
+      marginRight: 10,
+    },
+    recentTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.colors.text,
+    },
+    recentDate: {
+      fontSize: 11,
+      color: theme.colors.textMuted,
+      marginTop: 2,
+    },
+    recentRight: {
+      alignItems: 'flex-end',
+      gap: 6,
+    },
+    recentScore: {
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    recentBtn: {
+      backgroundColor: theme.colors.badgeBg,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    recentBtnText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.colors.accentLight,
+    },
+    logoutButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.25)',
+      borderRadius: 14,
+      paddingVertical: 14,
+      marginTop: 8,
+      marginBottom: 20,
+    },
+    logoutText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.colors.statusError,
+    },
+  });
 
 export default ProfileScreen;

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Clock, LayoutGrid, AlertCircle, RotateCw } from 'lucide-react-native';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export function ExamHeader({
   timeRemainingSeconds,
@@ -13,6 +14,9 @@ export function ExamHeader({
   onToggleOrientation,
   isLandscape = false,
 }) {
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -86,104 +90,105 @@ export function ExamHeader({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.slate[900],
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-  },
-  sectionBox: {
-    maxWidth: '32%',
-    backgroundColor: COLORS.slate[950],
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.slate[300],
-  },
-  timerBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(94, 67, 243, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(94, 67, 243, 0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  timerBadgeWarning: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-  },
-  timerText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: COLORS.brand[400],
-    fontVariant: ['tabular-nums'],
-    letterSpacing: 0.5,
-  },
-  timerTextWarning: {
-    color: '#f87171',
-  },
-  rightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  orientationBtn: {
-    backgroundColor: COLORS.slate[950],
-    padding: 7,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  paletteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.slate[950],
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  paletteBadge: {
-    backgroundColor: COLORS.slate[800],
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  paletteBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.slate[300],
-  },
-  submitHeaderBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  submitHeaderText: {
-    color: '#fca5a5',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.colors.card,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    sectionBox: {
+      maxWidth: '32%',
+      backgroundColor: isDark ? COLORS.slate[950] : theme.colors.surface,
+      paddingHorizontal: 8,
+      paddingVertical: 5,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    sectionLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    timerBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? 'rgba(94, 67, 243, 0.12)' : 'rgba(94, 67, 243, 0.08)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(94, 67, 243, 0.3)' : 'rgba(94, 67, 243, 0.2)',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+    },
+    timerBadgeWarning: {
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)',
+      borderColor: isDark ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.3)',
+    },
+    timerText: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: COLORS.brand[500],
+      fontVariant: ['tabular-nums'],
+      letterSpacing: 0.5,
+    },
+    timerTextWarning: {
+      color: '#ef4444',
+    },
+    rightActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    orientationBtn: {
+      backgroundColor: isDark ? COLORS.slate[950] : theme.colors.surface,
+      padding: 7,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    paletteButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: isDark ? COLORS.slate[950] : theme.colors.surface,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    paletteBadge: {
+      backgroundColor: isDark ? COLORS.slate[800] : COLORS.slate[200],
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    paletteBadgeText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    submitHeaderBtn: {
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(239, 68, 68, 0.35)' : 'rgba(239, 68, 68, 0.25)',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 10,
+    },
+    submitHeaderText: {
+      color: isDark ? '#fca5a5' : '#dc2626',
+      fontSize: 11,
+      fontWeight: '800',
+    },
+  });
 
 export default ExamHeader;

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react-native';
 
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { fetchHistory } from '../../store/slices/analyticsSlice';
 
 export function AttemptHistoryScreen({ navigation }) {
@@ -32,6 +33,8 @@ export function AttemptHistoryScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const { isDark, theme } = useTheme();
+  const styles = React.useMemo(() => getStyles(theme, isDark), [theme, isDark]);
 
   useEffect(() => {
     dispatch(fetchHistory());
@@ -51,7 +54,7 @@ export function AttemptHistoryScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       {/* Header */}
       <View style={styles.topBar}>
@@ -60,7 +63,7 @@ export function AttemptHistoryScreen({ navigation }) {
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={20} color={COLORS.slate[200]} />
+          <ArrowLeft size={20} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>Attempt History</Text>
         <View style={{ width: 40 }} />
@@ -133,13 +136,15 @@ export function AttemptHistoryScreen({ navigation }) {
                   <View style={styles.scoreRow}>
                     <View style={styles.scoreBox}>
                       <Text style={styles.scoreVal}>
-                        {item.score} / {item.totalMarks}
+                        {item.score !== '—' && item.score != null ? `${item.score} / ${item.totalMarks}` : `Pending Evaluation`}
                       </Text>
                       <Text style={styles.scoreLbl}>Score Obtained</Text>
                     </View>
 
                     <View style={styles.scoreBox}>
-                      <Text style={styles.scoreVal}>{item.accuracy}%</Text>
+                      <Text style={styles.scoreVal}>
+                        {item.accuracy !== '—' && item.accuracy != null ? `${item.accuracy}%` : '—'}
+                      </Text>
                       <Text style={styles.scoreLbl}>Accuracy</Text>
                     </View>
                   </View>
@@ -218,259 +223,266 @@ export function AttemptHistoryScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[900],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.slate[900],
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topBarTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  historyCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 14,
-  },
-  cardTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  dateText: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    fontWeight: '500',
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  statusBadgeText: {
-    color: COLORS.status.success,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  testTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    lineHeight: 22,
-  },
-  categoryName: {
-    fontSize: 11,
-    color: COLORS.brand[400],
-    fontWeight: '600',
-    marginTop: 2,
-    marginBottom: 12,
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 8,
-  },
-  scoreBox: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-    borderRadius: 12,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  scoreVal: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  scoreLbl: {
-    fontSize: 10,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-  cardDivider: {
-    height: 1,
-    backgroundColor: COLORS.slate[800],
-    marginVertical: 12,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  actionBtnOutline: {
-    flex: 1,
-    height: 40,
-    borderRadius: 10,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.slate[950],
-    borderWidth: 1,
-    borderColor: COLORS.slate[700],
-  },
-  actionBtnOutlineText: {
-    color: COLORS.brand[400],
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  actionBtnPrimary: {
-    flex: 1,
-    height: 40,
-    borderRadius: 10,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.brand[600],
-  },
-  actionBtnPrimaryText: {
-    color: COLORS.common.white,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  actionBtnIconOnly: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.slate[950],
-    borderWidth: 1,
-    borderColor: COLORS.slate[700],
-  },
-  emptyBox: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    marginBottom: 6,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: COLORS.slate[400],
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  listContentTablet: {
-    paddingHorizontal: 32,
-    maxWidth: 900,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  historyCardTablet: {
-    padding: 22,
-  },
-  statusBadgeInProgress: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  statusBadgeInProgressText: {
-    color: '#f59e0b',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  rankPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(251, 191, 36, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.25)',
-  },
-  rankPillText: {
-    color: '#fbbf24',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  inProgressNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  inProgressNoticeText: {
-    color: '#f59e0b',
-    fontSize: 12,
-    flex: 1,
-    fontWeight: '500',
-  },
-  resumeBtn: {
-    height: 42,
-    borderRadius: 10,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.brand[600],
-  },
-  resumeBtnText: {
-    color: COLORS.common.white,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.topBarBg,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    topBarTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    listContent: {
+      padding: 16,
+      paddingBottom: 40,
+    },
+    loaderContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    historyCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      marginBottom: 14,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    cardTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    dateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    dateText: {
+      fontSize: 11,
+      color: theme.colors.textMuted,
+      fontWeight: '500',
+    },
+    statusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    statusBadgeText: {
+      color: theme.colors.statusSuccess,
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    testTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.colors.text,
+      lineHeight: 22,
+    },
+    categoryName: {
+      fontSize: 11,
+      color: COLORS.brand[400],
+      fontWeight: '600',
+      marginTop: 2,
+      marginBottom: 12,
+    },
+    scoreRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 8,
+    },
+    scoreBox: {
+      flex: 1,
+      backgroundColor: theme.colors.cardInner,
+      borderRadius: 12,
+      padding: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+    },
+    scoreVal: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: theme.colors.text,
+    },
+    scoreLbl: {
+      fontSize: 10,
+      color: theme.colors.textMuted,
+      marginTop: 2,
+    },
+    cardDivider: {
+      height: 1,
+      backgroundColor: theme.colors.divider,
+      marginVertical: 12,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    actionBtnOutline: {
+      flex: 1,
+      height: 40,
+      borderRadius: 10,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: theme.colors.cardInner,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    actionBtnOutlineText: {
+      color: COLORS.brand[400],
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    actionBtnPrimary: {
+      flex: 1,
+      height: 40,
+      borderRadius: 10,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: COLORS.brand[600],
+    },
+    actionBtnPrimaryText: {
+      color: COLORS.common.white,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    actionBtnIconOnly: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.cardInner,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    emptyBox: {
+      padding: 40,
+      alignItems: 'center',
+    },
+    emptyTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginBottom: 6,
+    },
+    emptySubtitle: {
+      fontSize: 13,
+      color: theme.colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+    listContentTablet: {
+      paddingHorizontal: 32,
+      maxWidth: 900,
+      alignSelf: 'center',
+      width: '100%',
+    },
+    historyCardTablet: {
+      padding: 22,
+    },
+    statusBadgeInProgress: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(245, 158, 11, 0.12)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    statusBadgeInProgressText: {
+      color: '#f59e0b',
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    titleRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: 10,
+    },
+    rankPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(251, 191, 36, 0.12)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(251, 191, 36, 0.25)',
+    },
+    rankPillText: {
+      color: '#fbbf24',
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    inProgressNotice: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: 'rgba(245, 158, 11, 0.08)',
+      padding: 10,
+      borderRadius: 10,
+      marginBottom: 8,
+    },
+    inProgressNoticeText: {
+      color: '#f59e0b',
+      fontSize: 12,
+      flex: 1,
+      fontWeight: '500',
+    },
+    resumeBtn: {
+      height: 42,
+      borderRadius: 10,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: COLORS.brand[600],
+    },
+    resumeBtnText: {
+      color: COLORS.common.white,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+  });
 
 export default AttemptHistoryScreen;

@@ -12,6 +12,7 @@ import {
   Layers,
 } from 'lucide-react-native';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 const ICON_MAP = {
   Settings: Settings,
@@ -25,6 +26,7 @@ const ICON_MAP = {
 };
 
 export function CategoryCard({ category, isSelected = false, onPress, style }) {
+  const { theme, isDark } = useTheme();
   const IconComponent = ICON_MAP[category.icon] || Layers;
   const themeColor = category.color || COLORS.brand[400];
   const bgColor = category.bg || 'rgba(94, 67, 243, 0.12)';
@@ -35,6 +37,11 @@ export function CategoryCard({ category, isSelected = false, onPress, style }) {
       onPress={onPress}
       style={[
         styles.card,
+        {
+          backgroundColor: theme.colors.card,
+          borderColor: theme.colors.cardBorder,
+          shadowOpacity: isDark ? 0.25 : 0.05,
+        },
         isSelected && styles.cardSelected,
         style,
       ]}
@@ -43,12 +50,14 @@ export function CategoryCard({ category, isSelected = false, onPress, style }) {
         <IconComponent size={22} color={themeColor} />
       </View>
 
-      <Text style={styles.name} numberOfLines={2}>
+      <Text style={[styles.name, { color: theme.colors.text }]} numberOfLines={2}>
         {category.name}
       </Text>
 
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>{category.testCount || 50}+ Tests</Text>
+      <View style={[styles.badge, { backgroundColor: theme.colors.cardInner }]}>
+        <Text style={[styles.badgeText, { color: theme.colors.textMuted }]}>
+          {category.testCount || 50}+ Tests
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -56,14 +65,16 @@ export function CategoryCard({ category, isSelected = false, onPress, style }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.slate[900],
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.slate[800],
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 130,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 2,
   },
   cardSelected: {
     borderColor: COLORS.brand[500],
@@ -85,13 +96,11 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.common.white,
     textAlign: 'center',
     marginBottom: 6,
     minHeight: 34,
   },
   badge: {
-    backgroundColor: COLORS.slate[800],
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
@@ -99,7 +108,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: COLORS.slate[400],
   },
 });
 

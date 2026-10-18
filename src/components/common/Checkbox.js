@@ -2,18 +2,30 @@ import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export function Checkbox({ checked, onChange, label, style }) {
+  const { theme } = useTheme();
+
   return (
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={() => onChange(!checked)}
       style={[styles.container, style]}
     >
-      <View style={[styles.box, checked && styles.boxChecked]}>
+      <View
+        style={[
+          styles.box,
+          {
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.cardInner,
+          },
+          checked && styles.boxChecked,
+        ]}
+      >
         {checked && <Check size={14} color={COLORS.common.white} strokeWidth={3} />}
       </View>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{label}</Text>}
     </TouchableOpacity>
   );
 }
@@ -28,8 +40,6 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: COLORS.slate[700],
-    backgroundColor: COLORS.slate[900],
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -41,7 +51,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '500',
-    color: COLORS.slate[400],
   },
 });
 

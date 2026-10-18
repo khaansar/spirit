@@ -123,6 +123,67 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+export const refreshAuthSession = async () => {
+  const refreshToken = await storage.getRefreshToken();
+  if (!refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  const refreshRes = await fetch(`${CONFIG.API_BASE_URL}/auth-api/refresh`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Origin': 'http://localhost:3000',
+      'Cookie': `REFRESH_TOKEN=${refreshToken}`,
+    },
+  });
+
+  let newAccessToken = null;
+  let newRefreshToken = null;
+
+  let sc = null;
+  if (typeof refreshRes.headers.getSetCookie === 'function') {
+    sc = refreshRes.headers.getSetCookie().join('; ');
+  } else if (refreshRes.headers.raw && typeof refreshRes.headers.raw === 'function') {
+    const raw = refreshRes.headers.raw();
+    sc = Array.isArray(raw['set-cookie']) ? raw['set-cookie'].join('; ') : raw['set-cookie'];
+  } else if (refreshRes.headers.get) {
+    sc = refreshRes.headers.get('set-cookie') || refreshRes.headers.get('Set-Cookie');
+  }
+  if (!sc && refreshRes.headers?.map) {
+    sc = refreshRes.headers.map['set-cookie'] || refreshRes.headers.map['Set-Cookie'];
+  }
+
+  if (sc) {
+    newAccessToken = extractCookieValue(sc, 'ACCESS_TOKEN');
+    newRefreshToken = extractCookieValue(sc, 'REFRESH_TOKEN');
+  }
+
+  // Also inspect body if server returns token in payload
+  const body = await refreshRes.json().catch(() => ({}));
+  const bodyData = body?.data?.data || body?.data;
+  if (bodyData?.accessToken) {
+    newAccessToken = bodyData.accessToken;
+  }
+  if (bodyData?.refreshToken) {
+    newRefreshToken = bodyData.refreshToken;
+  }
+
+  if (newAccessToken) {
+    await storage.setAccessToken(newAccessToken);
+    if (newRefreshToken) {
+      await storage.setRefreshToken(newRefreshToken);
+    }
+    return newAccessToken;
+  }
+
+  if (!refreshRes.ok) {
+    throw new Error(body?.message || 'Failed to refresh session');
+  }
+
+  return await storage.getAccessToken();
+};
+
 const handleTokenRefresh = async (error, clientInstance) => {
   const originalRequest = error.config;
   const status = error?.response?.status || error?.status;
@@ -155,40 +216,9 @@ const handleTokenRefresh = async (error, clientInstance) => {
   isRefreshing = true;
 
   try {
-    const refreshToken = await storage.getRefreshToken();
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-
-    const refreshRes = await fetch(`${CONFIG.API_BASE_URL}/auth-api/refresh`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Origin': 'http://localhost:3000',
-        'Cookie': `REFRESH_TOKEN=${refreshToken}`,
-      },
-    });
-
-    let newAccessToken = null;
-    let newRefreshToken = null;
-
-    let sc = null;
-    if (typeof refreshRes.headers.getSetCookie === 'function') {
-      sc = refreshRes.headers.getSetCookie().join('; ');
-    } else if (refreshRes.headers.get) {
-      sc = refreshRes.headers.get('set-cookie');
-    }
-
-    if (sc) {
-      newAccessToken = extractCookieValue(sc, 'ACCESS_TOKEN');
-      newRefreshToken = extractCookieValue(sc, 'REFRESH_TOKEN');
-    }
+    const newAccessToken = await refreshAuthSession();
 
     if (newAccessToken) {
-      await storage.setAccessToken(newAccessToken);
-      if (newRefreshToken) {
-        await storage.setRefreshToken(newRefreshToken);
-      }
       processQueue(null, newAccessToken);
 
       if (originalRequest.headers) {

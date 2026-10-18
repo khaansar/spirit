@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,14 @@ import { ArrowLeft, BookOpen, Clock, Star, ShieldCheck } from 'lucide-react-nati
 
 import TestCard from '../../components/catalog/TestCard';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { fetchSeriesDetail } from '../../store/slices/catalogSlice';
 
 export function SeriesDetailScreen({ route, navigation }) {
   const dispatch = useDispatch();
+  const { isDark, theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+
   const { seriesId, series: fallbackSeries } = route.params || {};
   const { currentSeries, loading } = useSelector((state) => state.catalog);
 
@@ -29,39 +33,46 @@ export function SeriesDetailScreen({ route, navigation }) {
     }
   }, [dispatch, seriesId]);
 
-  const testsList = seriesData?.tests || [
-    {
-      id: 'dfc9d8e2-33a2-4f66-b0c7-5c71278616a8',
-      title: `${seriesData.title || 'Mock Exam'} - All India Mock #01`,
-      categoryName: seriesData.categoryName || 'General',
-      durationMinutes: seriesData.durationMinutes || 60,
-      totalMarks: 200,
-      totalQuestions: 100,
-      difficulty: 'Moderate',
-    },
-    {
-      id: 't2',
-      title: `${seriesData.title || 'Mock Exam'} - Sectional Practice #02`,
-      categoryName: seriesData.categoryName || 'General',
-      durationMinutes: 45,
-      totalMarks: 50,
-      totalQuestions: 25,
-      difficulty: 'Hard',
-    },
-    {
-      id: 't3',
-      title: `${seriesData.title || 'Mock Exam'} - Speed Drill #03`,
-      categoryName: seriesData.categoryName || 'General',
-      durationMinutes: 30,
-      totalMarks: 50,
-      totalQuestions: 25,
-      difficulty: 'Easy',
-    },
-  ];
+  const rawTests = currentSeries?.mockTests || currentSeries?.tests || seriesData?.mockTests || seriesData?.tests || [];
+  const testsList = rawTests.length > 0
+    ? rawTests.map((t) => ({
+        ...t,
+        id: t.testId || t.id,
+        categoryName: t.categoryName || seriesData.categoryName || 'General',
+      }))
+    : [
+        {
+          id: 'dfc9d8e2-33a2-4f66-b0c7-5c71278616a8',
+          title: `${seriesData.title || 'Mock Exam'} - All India Mock #01`,
+          categoryName: seriesData.categoryName || 'General',
+          durationMinutes: seriesData.durationMinutes || 60,
+          totalMarks: 200,
+          totalQuestions: 100,
+          difficulty: 'Moderate',
+        },
+        {
+          id: '28491461-5978-4a72-a2ba-3a467d4a6ae5',
+          title: `${seriesData.title || 'Mock Exam'} - Sectional Practice #02`,
+          categoryName: seriesData.categoryName || 'General',
+          durationMinutes: 45,
+          totalMarks: 50,
+          totalQuestions: 25,
+          difficulty: 'Hard',
+        },
+        {
+          id: '8f085de9-f0b2-40f2-b90b-1171217183e2',
+          title: `${seriesData.title || 'Mock Exam'} - Speed Drill #03`,
+          categoryName: seriesData.categoryName || 'General',
+          durationMinutes: 30,
+          totalMarks: 50,
+          totalQuestions: 25,
+          difficulty: 'Easy',
+        },
+      ];
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       {/* Top Header Bar */}
       <View style={styles.topBar}>
@@ -151,137 +162,141 @@ export function SeriesDetailScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[900],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.slate[900],
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topBarTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    maxWidth: '70%',
-    textAlign: 'center',
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  heroCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 24,
-  },
-  heroBadgeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  badge: {
-    backgroundColor: 'rgba(94, 67, 243, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(94, 67, 243, 0.3)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  badgeText: {
-    color: COLORS.brand[400],
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  categoryBadge: {
-    backgroundColor: COLORS.slate[800],
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  categoryBadgeText: {
-    color: COLORS.slate[300],
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  ratingText: {
-    color: '#fbbf24',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  seriesTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.common.white,
-    lineHeight: 26,
-    marginBottom: 8,
-  },
-  seriesDesc: {
-    fontSize: 13,
-    color: COLORS.slate[400],
-    lineHeight: 19,
-    marginBottom: 16,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.slate[800],
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.slate[300],
-  },
-  sectionHeader: {
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.topBarBg,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.colors.cardInner,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    topBarTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.colors.text,
+      maxWidth: '70%',
+      textAlign: 'center',
+    },
+    scrollContent: {
+      padding: 20,
+      paddingBottom: 40,
+    },
+    heroCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 24,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      marginBottom: 24,
+    },
+    heroBadgeRow: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    badge: {
+      backgroundColor: theme.colors.badgeBg,
+      borderWidth: 1,
+      borderColor: theme.colors.badgeBorder,
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    badgeText: {
+      color: COLORS.brand[400],
+      fontSize: 10,
+      fontWeight: '800',
+    },
+    categoryBadge: {
+      backgroundColor: theme.colors.cardInner,
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    categoryBadgeText: {
+      color: theme.colors.textSecondary,
+      fontSize: 10,
+      fontWeight: '600',
+    },
+    ratingBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(245, 158, 11, 0.12)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    ratingText: {
+      color: '#fbbf24',
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    seriesTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: theme.colors.text,
+      lineHeight: 26,
+      marginBottom: 8,
+    },
+    seriesDesc: {
+      fontSize: 13,
+      color: theme.colors.textMuted,
+      lineHeight: 19,
+      marginBottom: 16,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+    },
+    statItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    statValue: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.colors.textSecondary,
+    },
+    sectionHeader: {
+      marginBottom: 14,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    sectionSubtitle: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      marginTop: 2,
+    },
+  });
 
 export default SeriesDetailScreen;

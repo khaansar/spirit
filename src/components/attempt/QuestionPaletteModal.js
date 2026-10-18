@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Modal,
   View,
@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export function QuestionPaletteModal({
   visible,
@@ -21,6 +22,9 @@ export function QuestionPaletteModal({
   onSelectQuestion,
   onSelectSection,
 }) {
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+
   const currentSection = sections[currentSectionIndex] || { questions: [] };
 
   // Calculate status counts across entire exam
@@ -62,7 +66,7 @@ export function QuestionPaletteModal({
         return '#8b5cf6'; // Purple
       case 'NOT_VISITED':
       default:
-        return '#334155'; // Slate
+        return isDark ? '#334155' : '#94a3b8'; // Slate
     }
   };
 
@@ -79,7 +83,7 @@ export function QuestionPaletteModal({
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Question Palette</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
-              <X size={20} color={COLORS.slate[300]} />
+              <X size={20} color={theme.colors.text} />
             </TouchableOpacity>
           </View>
 
@@ -107,7 +111,7 @@ export function QuestionPaletteModal({
             </View>
 
             <View style={styles.legendItem}>
-              <View style={[styles.legendBox, { backgroundColor: '#334155' }]}>
+              <View style={[styles.legendBox, { backgroundColor: isDark ? '#334155' : '#94a3b8' }]}>
                 <Text style={styles.legendBoxText}>{notVisitedCount}</Text>
               </View>
               <Text style={styles.legendText}>Not Visited</Text>
@@ -171,124 +175,125 @@ export function QuestionPaletteModal({
   );
 }
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: COLORS.slate[900],
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    maxHeight: '85%',
-    paddingBottom: 24,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.slate[800],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  legendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-  },
-  legendItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  legendBox: {
-    width: 32,
-    height: 26,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  legendBoxText: {
-    color: COLORS.common.white,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  legendText: {
-    fontSize: 10,
-    color: COLORS.slate[400],
-    fontWeight: '600',
-  },
-  sectionTabs: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  secTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: COLORS.slate[950],
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  secTabSelected: {
-    backgroundColor: COLORS.brand[600],
-    borderColor: COLORS.brand[600],
-  },
-  secTabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.slate[300],
-  },
-  secTabTextSelected: {
-    color: COLORS.common.white,
-    fontWeight: '700',
-  },
-  gridContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  qItem: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  qItemCurrent: {
-    borderWidth: 2.5,
-    borderColor: COLORS.common.white,
-    transform: [{ scale: 1.05 }],
-  },
-  qItemText: {
-    color: COLORS.common.white,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.colors.card,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      maxHeight: '85%',
+      paddingBottom: 24,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 18,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: theme.colors.text,
+    },
+    closeBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: isDark ? COLORS.slate[800] : COLORS.slate[200],
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    legendContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    legendItem: {
+      alignItems: 'center',
+      gap: 4,
+    },
+    legendBox: {
+      width: 32,
+      height: 26,
+      borderRadius: 6,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    legendBoxText: {
+      color: COLORS.common.white,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    legendText: {
+      fontSize: 10,
+      color: theme.colors.textSecondary,
+      fontWeight: '600',
+    },
+    sectionTabs: {
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      gap: 8,
+    },
+    secTab: {
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 20,
+      backgroundColor: isDark ? COLORS.slate[950] : theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    secTabSelected: {
+      backgroundColor: COLORS.brand[600],
+      borderColor: COLORS.brand[600],
+    },
+    secTabText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.colors.textSecondary,
+    },
+    secTabTextSelected: {
+      color: COLORS.common.white,
+      fontWeight: '700',
+    },
+    gridContainer: {
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    qItem: {
+      width: 46,
+      height: 46,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    qItemCurrent: {
+      borderWidth: 2.5,
+      borderColor: theme.colors.text,
+      transform: [{ scale: 1.05 }],
+    },
+    qItemText: {
+      color: COLORS.common.white,
+      fontSize: 14,
+      fontWeight: '800',
+    },
+  });
 
 export default QuestionPaletteModal;

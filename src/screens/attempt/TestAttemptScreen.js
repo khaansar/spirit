@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as ScreenCapture from 'expo-screen-capture';
 
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import {
   initLocalExam,
   tickTimer,
@@ -39,6 +40,9 @@ import {
 
 export function TestAttemptScreen({ route, navigation }) {
   const dispatch = useDispatch();
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+
   const { test } = route.params || {};
 
   const {
@@ -188,7 +192,7 @@ export function TestAttemptScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       {/* Real-time Header */}
       <ExamHeader
@@ -274,7 +278,10 @@ export function TestAttemptScreen({ route, navigation }) {
           disabled={isFirstQuestion}
           activeOpacity={0.7}
         >
-          <ChevronLeft size={18} color={isFirstQuestion ? COLORS.slate[600] : COLORS.slate[200]} />
+          <ChevronLeft
+            size={18}
+            color={isFirstQuestion ? (isDark ? COLORS.slate[600] : COLORS.slate[400]) : theme.colors.text}
+          />
           <Text style={[styles.navButtonText, isFirstQuestion && styles.navButtonTextDisabled]}>
             Previous
           </Text>
@@ -340,128 +347,129 @@ export function TestAttemptScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  sectionTabsContainer: {
-    backgroundColor: COLORS.slate[900],
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-  },
-  sectionTabs: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  sectionTab: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: COLORS.slate[950],
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  sectionTabSelected: {
-    backgroundColor: COLORS.brand[600],
-    borderColor: COLORS.brand[600],
-  },
-  sectionTabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.slate[400],
-  },
-  sectionTabTextSelected: {
-    color: COLORS.common.white,
-    fontWeight: '700',
-  },
-  viewerContainer: {
-    flex: 1,
-  },
-  bottomBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.slate[900],
-    borderTopWidth: 1,
-    borderTopColor: COLORS.slate[800],
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  navButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.slate[800],
-    paddingHorizontal: 12,
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.slate[700],
-  },
-  navButtonDisabled: {
-    backgroundColor: COLORS.slate[900],
-    borderColor: COLORS.slate[800],
-  },
-  navButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.slate[200],
-  },
-  navButtonTextDisabled: {
-    color: COLORS.slate[600],
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.slate[800],
-    paddingHorizontal: 12,
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.slate[700],
-  },
-  actionBtnActive: {
-    backgroundColor: 'rgba(192, 132, 252, 0.15)',
-    borderColor: 'rgba(192, 132, 252, 0.4)',
-  },
-  actionBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.slate[300],
-  },
-  actionBtnTextActive: {
-    color: '#c084fc',
-    fontWeight: '700',
-  },
-  saveNextButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: COLORS.brand[600],
-    height: 44,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    shadowColor: COLORS.brand[600],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  submitFinalButton: {
-    backgroundColor: '#dc2626',
-    shadowColor: '#dc2626',
-  },
-  saveNextText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    sectionTabsContainer: {
+      backgroundColor: theme.colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    sectionTabs: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      gap: 8,
+    },
+    sectionTab: {
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 8,
+      backgroundColor: isDark ? COLORS.slate[950] : theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    sectionTabSelected: {
+      backgroundColor: COLORS.brand[600],
+      borderColor: COLORS.brand[600],
+    },
+    sectionTabText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.colors.textSecondary,
+    },
+    sectionTabTextSelected: {
+      color: COLORS.common.white,
+      fontWeight: '700',
+    },
+    viewerContainer: {
+      flex: 1,
+    },
+    bottomBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.colors.card,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      gap: 8,
+    },
+    navButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: isDark ? COLORS.slate[800] : COLORS.slate[200],
+      paddingHorizontal: 12,
+      height: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    navButtonDisabled: {
+      backgroundColor: isDark ? COLORS.slate[900] : COLORS.slate[100],
+      borderColor: theme.colors.border,
+    },
+    navButtonText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    navButtonTextDisabled: {
+      color: isDark ? COLORS.slate[600] : COLORS.slate[400],
+    },
+    actionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: isDark ? COLORS.slate[800] : COLORS.slate[200],
+      paddingHorizontal: 12,
+      height: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    actionBtnActive: {
+      backgroundColor: 'rgba(192, 132, 252, 0.15)',
+      borderColor: 'rgba(192, 132, 252, 0.4)',
+    },
+    actionBtnText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.colors.text,
+    },
+    actionBtnTextActive: {
+      color: '#c084fc',
+      fontWeight: '700',
+    },
+    saveNextButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      backgroundColor: COLORS.brand[600],
+      height: 44,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      shadowColor: COLORS.brand[600],
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 3,
+    },
+    submitFinalButton: {
+      backgroundColor: '#dc2626',
+      shadowColor: '#dc2626',
+    },
+    saveNextText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: COLORS.common.white,
+    },
+  });
 
 export default TestAttemptScreen;

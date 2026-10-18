@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 
 import AuthNavigator from './AuthNavigator';
@@ -8,10 +8,12 @@ import AppNavigator from './AppNavigator';
 import BrandLogo from '../components/common/BrandLogo';
 
 import { COLORS } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { restoreSession } from '../store/slices/authSlice';
 
 export function RootNavigator() {
   const dispatch = useDispatch();
+  const { isDark, theme } = useTheme();
   const { isAuthenticated, isRestoringSession } = useSelector((state) => state.auth);
   const [splashDone, setSplashDone] = useState(false);
 
@@ -32,10 +34,22 @@ export function RootNavigator() {
     return () => clearTimeout(timer);
   }, [dispatch]);
 
+  const navigationTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      background: theme.colors.bg,
+      card: theme.colors.card,
+      text: theme.colors.text,
+      border: theme.colors.border,
+      primary: theme.colors.accent,
+    },
+  };
+
   // Only show splash if both still restoring AND within the 1s window
   if (isRestoringSession && !splashDone) {
     return (
-      <View style={styles.splashContainer}>
+      <View style={[styles.splashContainer, { backgroundColor: theme.colors.bg }]}>
         <BrandLogo size="lg" showTagline layout="stacked" />
         <ActivityIndicator
           size="large"
@@ -47,7 +61,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navigationTheme}>
       <AppNavigator />
     </NavigationContainer>
   );

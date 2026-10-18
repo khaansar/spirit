@@ -2,13 +2,23 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Clock, Star, BookOpen, ChevronRight } from 'lucide-react-native';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export function SeriesCard({ series, onPress, style }) {
+  const { isDark, theme } = useTheme();
+
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onPress}
-      style={[styles.card, style]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.colors.card,
+          borderColor: theme.colors.cardBorder,
+        },
+        style,
+      ]}
     >
       <View style={styles.topRow}>
         {series.badge ? (
@@ -16,8 +26,19 @@ export function SeriesCard({ series, onPress, style }) {
             <Text style={styles.badgeText}>{series.badge.toUpperCase()}</Text>
           </View>
         ) : (
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryBadgeText}>{series.categoryName || 'Test Series'}</Text>
+          <View
+            style={[
+              styles.categoryBadge,
+              {
+                backgroundColor: theme.colors.cardInner,
+                borderColor: theme.colors.border,
+                borderWidth: 1,
+              },
+            ]}
+          >
+            <Text style={[styles.categoryBadgeText, { color: theme.colors.textSecondary }]}>
+              {series.categoryName || 'Test Series'}
+            </Text>
           </View>
         )}
 
@@ -29,32 +50,36 @@ export function SeriesCard({ series, onPress, style }) {
         )}
       </View>
 
-      <Text style={styles.title} numberOfLines={2}>
+      <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>
         {series.title}
       </Text>
 
       {series.description && (
-        <Text style={styles.description} numberOfLines={2}>
+        <Text style={[styles.description, { color: theme.colors.textMuted }]} numberOfLines={2}>
           {series.description}
         </Text>
       )}
 
-      <View style={styles.divider} />
+      <View style={[styles.divider, { backgroundColor: theme.colors.divider }]} />
 
       <View style={styles.footerRow}>
         <View style={styles.metaItem}>
-          <BookOpen size={14} color={COLORS.slate[400]} />
-          <Text style={styles.metaText}>{series.testCount || 10} Mock Tests</Text>
+          <BookOpen size={14} color={theme.colors.textMuted} />
+          <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>
+            {series.testCount || 10} Mock Tests
+          </Text>
         </View>
 
         <View style={styles.metaItem}>
-          <Clock size={14} color={COLORS.slate[400]} />
-          <Text style={styles.metaText}>{series.durationMinutes || 60} mins</Text>
+          <Clock size={14} color={theme.colors.textMuted} />
+          <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>
+            {series.durationMinutes || 60} mins
+          </Text>
         </View>
 
         <View style={styles.ctaButton}>
-          <Text style={styles.ctaText}>Explore</Text>
-          <ChevronRight size={14} color={COLORS.brand[400]} />
+          <Text style={[styles.ctaText, { color: theme.colors.accentLight }]}>Explore</Text>
+          <ChevronRight size={14} color={theme.colors.accentLight} />
         </View>
       </View>
     </TouchableOpacity>

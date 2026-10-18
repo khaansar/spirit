@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,9 +24,13 @@ import {
 } from 'lucide-react-native';
 
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import apiClient from '../../api/client';
 
 export function TestResultScreen({ route, navigation }) {
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+
   const { result: initialResult, attemptId: routeAttemptId } = route.params || {};
 
   const hasValidReport = !!(initialResult?.summary && (initialResult.summary.totalScore !== undefined || initialResult.sectionBreakdown));
@@ -76,7 +80,7 @@ export function TestResultScreen({ route, navigation }) {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.brand[400]} />
           <Text style={styles.loadingText}>Generating Performance Scorecard...</Text>
@@ -127,7 +131,7 @@ export function TestResultScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Success Header */}
@@ -363,393 +367,394 @@ export function TestResultScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  scrollContent: {
-    padding: 20,
-    paddingTop: 30,
-    paddingBottom: 40,
-  },
-  headerBox: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  trophyCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: 'rgba(94, 67, 243, 0.15)',
-    borderWidth: 2,
-    borderColor: COLORS.brand[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: COLORS.slate[400],
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 18,
-    paddingHorizontal: 20,
-  },
-  scoreCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 24,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 18,
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  scoreLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.slate[400],
-    letterSpacing: 1,
-  },
-  scoreValueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: 4,
-  },
-  scoreBig: {
-    fontSize: 38,
-    fontWeight: '900',
-    color: COLORS.common.white,
-  },
-  scoreMax: {
-    fontSize: 18,
-    color: COLORS.slate[400],
-    fontWeight: '600',
-  },
-  percentileBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-  },
-  percentileText: {
-    color: COLORS.status.success,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  scoreDivider: {
-    height: 1,
-    backgroundColor: COLORS.slate[800],
-    marginVertical: 18,
-  },
-  metricGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  metricItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  metricVal: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  metricLbl: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-  breakdownCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 24,
-  },
-  breakdownTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    marginBottom: 14,
-  },
-  breakdownRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-  },
-  breakdownLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  breakdownText: {
-    fontSize: 13,
-    color: COLORS.slate[300],
-  },
-  breakdownCount: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  actionButtons: {
-    gap: 12,
-  },
-  primaryBtn: {
-    backgroundColor: COLORS.brand[600],
-    height: 52,
-    borderRadius: 14,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    shadowColor: COLORS.brand[600],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  primaryBtnText: {
-    color: COLORS.common.white,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  secondaryBtn: {
-    backgroundColor: COLORS.slate[900],
-    height: 50,
-    borderRadius: 14,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  secondaryBtnText: {
-    color: COLORS.brand[400],
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  ghostBtn: {
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ghostBtnText: {
-    color: COLORS.slate[400],
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    color: COLORS.slate[300],
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  statusBarContainer: {
-    flexDirection: 'row',
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 16,
-    gap: 2,
-  },
-  statusBarSegment: {
-    borderRadius: 4,
-  },
-  sectionCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 18,
-  },
-  sectionCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  sectionCardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  sectionCardSubtitle: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    marginBottom: 14,
-  },
-  sectionList: {
-    gap: 12,
-  },
-  sectionItem: {
-    backgroundColor: COLORS.slate[950],
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  sectionTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    flex: 1,
-  },
-  sectionScore: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.brand[400],
-  },
-  secAccRow: {
-    marginBottom: 10,
-  },
-  secAccLabel: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  secAccTrack: {
-    height: 6,
-    backgroundColor: COLORS.slate[800],
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  secAccFill: {
-    height: '100%',
-    backgroundColor: COLORS.brand[500],
-    borderRadius: 3,
-  },
-  secBadges: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  secBadgeGreen: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  secBadgeTextGreen: {
-    color: COLORS.status.success,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  secBadgeRed: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  secBadgeTextRed: {
-    color: '#ef4444',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  secBadgeGray: {
-    backgroundColor: 'rgba(148, 163, 184, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  secBadgeTextGray: {
-    color: COLORS.slate[400],
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  peerCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 18,
-  },
-  peerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
-  },
-  peerTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  peerGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  peerItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  peerVal: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  peerLbl: {
-    fontSize: 10,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-  remarksCard: {
-    backgroundColor: 'rgba(94, 67, 243, 0.08)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(94, 67, 243, 0.25)',
-    marginBottom: 20,
-  },
-  remarksHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  remarksTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.brand[400],
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  remarksBody: {
-    fontSize: 12,
-    color: COLORS.slate[300],
-    lineHeight: 18,
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    scrollContent: {
+      padding: 20,
+      paddingTop: 30,
+      paddingBottom: 40,
+    },
+    headerBox: {
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    trophyCircle: {
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      backgroundColor: isDark ? 'rgba(94, 67, 243, 0.15)' : 'rgba(94, 67, 243, 0.08)',
+      borderWidth: 2,
+      borderColor: COLORS.brand[500],
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    title: {
+      fontSize: 26,
+      fontWeight: '800',
+      color: theme.colors.text,
+    },
+    subtitle: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+      marginTop: 6,
+      lineHeight: 18,
+      paddingHorizontal: 20,
+    },
+    scoreCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 24,
+      padding: 22,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginBottom: 18,
+    },
+    scoreRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    scoreLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.colors.textSecondary,
+      letterSpacing: 1,
+    },
+    scoreValueRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      marginTop: 4,
+    },
+    scoreBig: {
+      fontSize: 38,
+      fontWeight: '900',
+      color: theme.colors.text,
+    },
+    scoreMax: {
+      fontSize: 18,
+      color: theme.colors.textSecondary,
+      fontWeight: '600',
+    },
+    percentileBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.3)',
+    },
+    percentileText: {
+      color: COLORS.status.success,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    scoreDivider: {
+      height: 1,
+      backgroundColor: theme.colors.border,
+      marginVertical: 18,
+    },
+    metricGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    metricItem: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    metricVal: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: theme.colors.text,
+    },
+    metricLbl: {
+      fontSize: 11,
+      color: theme.colors.textSecondary,
+      marginTop: 2,
+    },
+    breakdownCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginBottom: 24,
+    },
+    breakdownTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginBottom: 14,
+    },
+    breakdownRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    breakdownLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    breakdownText: {
+      fontSize: 13,
+      color: theme.colors.text,
+    },
+    breakdownCount: {
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    actionButtons: {
+      gap: 12,
+    },
+    primaryBtn: {
+      backgroundColor: COLORS.brand[600],
+      height: 52,
+      borderRadius: 14,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 8,
+      shadowColor: COLORS.brand[600],
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    primaryBtnText: {
+      color: COLORS.common.white,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    secondaryBtn: {
+      backgroundColor: theme.colors.card,
+      height: 50,
+      borderRadius: 14,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    secondaryBtnText: {
+      color: COLORS.brand[400],
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    ghostBtn: {
+      height: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    ghostBtnText: {
+      color: theme.colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 12,
+    },
+    loadingText: {
+      color: theme.colors.textSecondary,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    statusBarContainer: {
+      flexDirection: 'row',
+      height: 8,
+      borderRadius: 4,
+      overflow: 'hidden',
+      marginBottom: 16,
+      gap: 2,
+    },
+    statusBarSegment: {
+      borderRadius: 4,
+    },
+    sectionCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginBottom: 18,
+    },
+    sectionCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 4,
+    },
+    sectionCardTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    sectionCardSubtitle: {
+      fontSize: 11,
+      color: theme.colors.textSecondary,
+      marginBottom: 14,
+    },
+    sectionList: {
+      gap: 12,
+    },
+    sectionItem: {
+      backgroundColor: isDark ? COLORS.slate[950] : theme.colors.surface,
+      borderRadius: 14,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    sectionTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    sectionName: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.colors.text,
+      flex: 1,
+    },
+    sectionScore: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: COLORS.brand[400],
+    },
+    secAccRow: {
+      marginBottom: 10,
+    },
+    secAccLabel: {
+      fontSize: 11,
+      color: theme.colors.textSecondary,
+      fontWeight: '500',
+      marginBottom: 4,
+    },
+    secAccTrack: {
+      height: 6,
+      backgroundColor: isDark ? COLORS.slate[800] : COLORS.slate[200],
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    secAccFill: {
+      height: '100%',
+      backgroundColor: COLORS.brand[500],
+      borderRadius: 3,
+    },
+    secBadges: {
+      flexDirection: 'row',
+      gap: 6,
+    },
+    secBadgeGreen: {
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    secBadgeTextGreen: {
+      color: COLORS.status.success,
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    secBadgeRed: {
+      backgroundColor: 'rgba(239, 68, 68, 0.12)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    secBadgeTextRed: {
+      color: '#ef4444',
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    secBadgeGray: {
+      backgroundColor: isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(100, 116, 139, 0.08)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    secBadgeTextGray: {
+      color: theme.colors.textSecondary,
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    peerCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginBottom: 18,
+    },
+    peerHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 14,
+    },
+    peerTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    peerGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    peerItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    peerVal: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: theme.colors.text,
+    },
+    peerLbl: {
+      fontSize: 10,
+      color: theme.colors.textSecondary,
+      marginTop: 2,
+    },
+    remarksCard: {
+      backgroundColor: isDark ? 'rgba(94, 67, 243, 0.08)' : 'rgba(94, 67, 243, 0.05)',
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(94, 67, 243, 0.25)' : 'rgba(94, 67, 243, 0.15)',
+      marginBottom: 20,
+    },
+    remarksHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 6,
+    },
+    remarksTitle: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: COLORS.brand[400],
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    remarksBody: {
+      fontSize: 12,
+      color: theme.colors.text,
+      lineHeight: 18,
+    },
+  });
 
 export default TestResultScreen;

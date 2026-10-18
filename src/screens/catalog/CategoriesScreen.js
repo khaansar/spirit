@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,11 +13,14 @@ import { fetchCategories, setSelectedCategory } from '../../store/slices/catalog
 import CategoryCard from '../../components/catalog/CategoryCard';
 import SearchBar from '../../components/common/SearchBar';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export function CategoriesScreen({ navigation }) {
   const dispatch = useDispatch();
   const { categories, loading } = useSelector((state) => state.catalog);
   const [search, setSearch] = useState('');
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
 
   useEffect(() => {
     dispatch(fetchCategories());
@@ -34,7 +37,7 @@ export function CategoriesScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       <View style={styles.header}>
         <Text style={styles.title}>Exam Categories</Text>
@@ -78,55 +81,56 @@ export function CategoriesScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: COLORS.slate[400],
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  searchBar: {
-    marginBottom: 4,
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 30,
-  },
-  columnWrapper: {
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  categoryCard: {
-    width: '48%',
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: COLORS.slate[400],
-    fontSize: 14,
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    header: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 12,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: theme.colors.text,
+    },
+    subtitle: {
+      fontSize: 13,
+      color: theme.colors.textMuted,
+      marginTop: 4,
+      marginBottom: 16,
+    },
+    searchBar: {
+      marginBottom: 4,
+    },
+    listContent: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 30,
+    },
+    columnWrapper: {
+      justifyContent: 'space-between',
+      marginBottom: 14,
+    },
+    categoryCard: {
+      width: '48%',
+    },
+    loaderContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyContainer: {
+      paddingVertical: 40,
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: theme.colors.textMuted,
+      fontSize: 14,
+    },
+  });
 
 export default CategoriesScreen;

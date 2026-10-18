@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import apiClient from '../../api/client';
+import apiClient, { refreshAuthSession } from '../../api/client';
 import { storage } from '../../utils/storage';
 
 const getErrorMessage = (error, fallback) => {
@@ -76,9 +76,22 @@ export const restoreSession = createAsyncThunk(
   'auth/restoreSession',
   async (_, { rejectWithValue }) => {
     try {
-      const token = await storage.getAccessToken();
-      if (!token) {
+      let token = await storage.getAccessToken();
+      const refreshToken = await storage.getRefreshToken();
+
+      if (!token && !refreshToken) {
+        await storage.clearTokens();
         return null;
+      }
+
+      // If access token is missing but refresh token exists, refresh first
+      if (!token && refreshToken) {
+        try {
+          token = await refreshAuthSession();
+        } catch {
+          await storage.clearTokens();
+          return null;
+        }
       }
 
       // Try fetching current user profile from Baahubali
@@ -99,10 +112,12 @@ export const restoreSession = createAsyncThunk(
             return user;
           }
         } catch (e) {
-          // Fallback to locally cached user if network is temporarily offline
-          const cachedUserStr = await storage.getItem('clearit_user');
-          if (cachedUserStr) {
-            return JSON.parse(cachedUserStr);
+          // Fallback to locally cached user only if network is offline and NOT a 401 auth error
+          if (apiErr?.status !== 401 && e?.status !== 401) {
+            const cachedUserStr = await storage.getItem('clearit_user');
+            if (cachedUserStr) {
+              return JSON.parse(cachedUserStr);
+            }
           }
           await storage.clearTokens();
           return null;

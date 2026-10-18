@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Modal,
   View,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { AlertTriangle, Clock, CheckCircle, HelpCircle } from 'lucide-react-native';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export function SubmitConfirmModal({
   visible,
@@ -20,6 +21,8 @@ export function SubmitConfirmModal({
   markedCount = 0,
   timeRemainingSeconds = 0,
 }) {
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -109,110 +112,111 @@ export function SubmitConfirmModal({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  card: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    maxWidth: 380,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    alignItems: 'center',
-  },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(94, 67, 243, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(94, 67, 243, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.common.white,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: COLORS.slate[400],
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 18,
-    marginBottom: 20,
-  },
-  statsCard: {
-    width: '100%',
-    backgroundColor: COLORS.slate[950],
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 20,
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 7,
-  },
-  statLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statLabel: {
-    fontSize: 13,
-    color: COLORS.slate[300],
-  },
-  statValue: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  cancelButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: COLORS.slate[800],
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.slate[700],
-  },
-  cancelText: {
-    color: COLORS.slate[200],
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  confirmButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#dc2626', // Red submit button
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  confirmText: {
-    color: COLORS.common.white,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    card: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 24,
+      padding: 24,
+      width: '100%',
+      maxWidth: 380,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: 'center',
+    },
+    iconCircle: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: isDark ? 'rgba(94, 67, 243, 0.15)' : 'rgba(94, 67, 243, 0.08)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(94, 67, 243, 0.3)' : 'rgba(94, 67, 243, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: theme.colors.text,
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+      marginTop: 8,
+      lineHeight: 18,
+      marginBottom: 20,
+    },
+    statsCard: {
+      width: '100%',
+      backgroundColor: isDark ? COLORS.slate[950] : theme.colors.surface,
+      borderRadius: 16,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginBottom: 20,
+    },
+    statRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 7,
+    },
+    statLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    statLabel: {
+      fontSize: 13,
+      color: theme.colors.text,
+    },
+    statValue: {
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      gap: 12,
+      width: '100%',
+    },
+    cancelButton: {
+      flex: 1,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: isDark ? COLORS.slate[800] : COLORS.slate[200],
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    cancelText: {
+      color: theme.colors.text,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    confirmButton: {
+      flex: 1,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: '#dc2626', // Red submit button
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    confirmText: {
+      color: COLORS.common.white,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+  });
 
 export default SubmitConfirmModal;

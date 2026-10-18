@@ -22,12 +22,15 @@ import {
   AlertCircle,
   Check,
   ChevronDown,
+  Sun,
+  Moon,
 } from 'lucide-react-native';
 
 import Input from '../../components/common/Input';
 import PasswordInput from '../../components/common/PasswordInput';
 import Button from '../../components/common/Button';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { userService } from '../../api/userService';
 import { fetchCurrentUser, updateUser } from '../../store/slices/authSlice';
 import { validatePassword } from '../../utils/validators';
@@ -48,6 +51,8 @@ const POPULAR_EXAMS = [
 export function AccountSettingsScreen({ navigation }) {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const { theme, isDark, toggleTheme } = useTheme();
+  const styles = React.useMemo(() => getStyles(theme, isDark), [theme, isDark]);
 
   // Profile Form States
   const [firstName, setFirstName] = useState('');
@@ -181,7 +186,7 @@ export function AccountSettingsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       {/* Top Header */}
       <View style={styles.topBar}>
@@ -190,10 +195,16 @@ export function AccountSettingsScreen({ navigation }) {
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={20} color={COLORS.slate[200]} />
+          <ArrowLeft size={20} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>Account Settings</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          {isDark ? <Sun size={18} color="#fbbf24" /> : <Moon size={18} color={COLORS.brand[600]} />}
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -430,245 +441,258 @@ export function AccountSettingsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-    backgroundColor: COLORS.slate[950],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.slate[900],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topBarTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  userBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 16,
-    gap: 16,
-  },
-  avatarCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(94, 67, 243, 0.2)',
-    borderWidth: 2,
-    borderColor: COLORS.brand[400],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitials: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.brand[400],
-  },
-  userBannerInfo: {
-    flex: 1,
-  },
-  userBannerName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  userBannerEmail: {
-    fontSize: 13,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-  targetBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(94, 67, 243, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginTop: 6,
-  },
-  targetBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.brand[400],
-  },
-  sectionCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.slate[300],
-    marginBottom: 6,
-    marginTop: 8,
-  },
-  dropdownTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.slate[950],
-    borderWidth: 1,
-    borderColor: COLORS.slate[700],
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  dropdownLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  dropdownValue: {
-    fontSize: 14,
-    color: COLORS.common.white,
-    fontWeight: '500',
-  },
-  dropdownMenu: {
-    backgroundColor: COLORS.slate[950],
-    borderWidth: 1,
-    borderColor: COLORS.slate[700],
-    borderRadius: 10,
-    marginTop: 6,
-    overflow: 'hidden',
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-  },
-  dropdownItemSelected: {
-    backgroundColor: 'rgba(94, 67, 243, 0.1)',
-  },
-  dropdownItemText: {
-    fontSize: 13,
-    color: COLORS.slate[300],
-  },
-  dropdownItemTextSelected: {
-    color: COLORS.brand[400],
-    fontWeight: '600',
-  },
-  saveBtn: {
-    marginTop: 16,
-  },
-  successBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 14,
-  },
-  successText: {
-    fontSize: 13,
-    color: COLORS.status.success,
-    fontWeight: '500',
-  },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 14,
-  },
-  errorText: {
-    fontSize: 13,
-    color: COLORS.status.error,
-    fontWeight: '500',
-  },
-  strengthContainer: {
-    marginTop: -4,
-    marginBottom: 12,
-  },
-  strengthBarsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 4,
-  },
-  strengthBar: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-  },
-  strengthLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 4,
-    textAlign: 'right',
-  },
-  checklist: {
-    backgroundColor: COLORS.slate[950],
-    borderRadius: 8,
-    padding: 10,
-    gap: 6,
-    marginTop: 4,
-  },
-  checkItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  checkText: {
-    fontSize: 12,
-    color: COLORS.slate[500],
-  },
-  checkTextActive: {
-    color: COLORS.slate[300],
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.topBarBg,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    topBarTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 40,
+    },
+    userBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.card,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      marginBottom: 16,
+      gap: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    avatarCircle: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: 'rgba(94, 67, 243, 0.2)',
+      borderWidth: 2,
+      borderColor: COLORS.brand[400],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarInitials: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: COLORS.brand[400],
+    },
+    userBannerInfo: {
+      flex: 1,
+    },
+    userBannerName: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    userBannerEmail: {
+      fontSize: 13,
+      color: theme.colors.textMuted,
+      marginTop: 2,
+    },
+    targetBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: 'rgba(94, 67, 243, 0.12)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+      alignSelf: 'flex-start',
+      marginTop: 6,
+    },
+    targetBadgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: COLORS.brand[400],
+    },
+    sectionCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 16,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 16,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.divider,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    inputLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.colors.textSecondary,
+      marginBottom: 6,
+      marginTop: 8,
+    },
+    dropdownTrigger: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.colors.cardInner,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    dropdownLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    dropdownValue: {
+      fontSize: 14,
+      color: theme.colors.text,
+      fontWeight: '500',
+    },
+    dropdownMenu: {
+      backgroundColor: theme.colors.cardInner,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 10,
+      marginTop: 6,
+      overflow: 'hidden',
+    },
+    dropdownItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.divider,
+    },
+    dropdownItemSelected: {
+      backgroundColor: 'rgba(94, 67, 243, 0.1)',
+    },
+    dropdownItemText: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+    },
+    dropdownItemTextSelected: {
+      color: COLORS.brand[400],
+      fontWeight: '600',
+    },
+    saveBtn: {
+      marginTop: 16,
+    },
+    successBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.3)',
+      borderRadius: 8,
+      padding: 10,
+      marginBottom: 14,
+    },
+    successText: {
+      fontSize: 13,
+      color: theme.colors.statusSuccess,
+      fontWeight: '500',
+    },
+    errorBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+      borderRadius: 8,
+      padding: 10,
+      marginBottom: 14,
+    },
+    errorText: {
+      fontSize: 13,
+      color: theme.colors.statusError,
+      fontWeight: '500',
+    },
+    strengthContainer: {
+      marginTop: -4,
+      marginBottom: 12,
+    },
+    strengthBarsRow: {
+      flexDirection: 'row',
+      gap: 6,
+      marginTop: 4,
+    },
+    strengthBar: {
+      flex: 1,
+      height: 4,
+      borderRadius: 2,
+    },
+    strengthLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      marginTop: 4,
+      textAlign: 'right',
+    },
+    checklist: {
+      backgroundColor: theme.colors.cardInner,
+      borderRadius: 8,
+      padding: 10,
+      gap: 6,
+      marginTop: 4,
+    },
+    checkItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    checkText: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+    },
+    checkTextActive: {
+      color: theme.colors.text,
+    },
+  });
 
 export default AccountSettingsScreen;

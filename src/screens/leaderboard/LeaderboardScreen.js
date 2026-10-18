@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import { ArrowLeft, Trophy, Crown, Clock, Target } from 'lucide-react-native';
+import { ArrowLeft, Trophy, Crown, Clock, Target, Sun, Moon } from 'lucide-react-native';
 
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { fetchLeaderboard } from '../../store/slices/analyticsSlice';
 
 export function LeaderboardScreen({ route, navigation }) {
   const dispatch = useDispatch();
+  const { theme, isDark, toggleTheme } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+
   const { testSlug } = route.params || {};
   const { leaderboard, loading } = useSelector((state) => state.analytics);
 
@@ -30,7 +34,7 @@ export function LeaderboardScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       {/* Top Header */}
       <View style={styles.topBar}>
@@ -39,10 +43,16 @@ export function LeaderboardScreen({ route, navigation }) {
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={20} color={COLORS.slate[200]} />
+          <ArrowLeft size={20} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>All India Leaderboard</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          {isDark ? <Sun size={18} color="#fbbf24" /> : <Moon size={18} color={COLORS.brand[600]} />}
+        </TouchableOpacity>
       </View>
 
       {loading && leaderboard.length === 0 ? (
@@ -188,240 +198,242 @@ export function LeaderboardScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[900],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.slate[900],
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topBarTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  podiumContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    gap: 16,
-    marginVertical: 20,
-  },
-  podiumColumn: {
-    alignItems: 'center',
-    width: 100,
-  },
-  avatarCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.slate[900],
-    borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    marginBottom: 8,
-  },
-  goldBorder: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderColor: '#fbbf24',
-    borderWidth: 2.5,
-  },
-  avatarInitial: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  rankPill: {
-    position: 'absolute',
-    bottom: -6,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  rankPillText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  podiumName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    textAlign: 'center',
-  },
-  podiumScore: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: COLORS.brand[400],
-    marginTop: 2,
-  },
-  podiumAccuracy: {
-    fontSize: 10,
-    color: COLORS.slate[400],
-  },
-  listCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  listCardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    marginBottom: 12,
-  },
-  rankRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-  },
-  rankRowCurrentUser: {
-    backgroundColor: 'rgba(94, 67, 243, 0.12)',
-    marginHorizontal: -8,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-  },
-  rankLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  rankNumber: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: COLORS.slate[400],
-    width: 32,
-  },
-  rankNumberCurrent: {
-    color: COLORS.brand[400],
-  },
-  rankName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.common.white,
-  },
-  rankNameCurrent: {
-    color: COLORS.brand[400],
-    fontWeight: '700',
-  },
-  rankMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  rankMetaText: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-  },
-  rankMetaDot: {
-    color: COLORS.slate[600],
-    fontSize: 10,
-  },
-  rankRight: {
-    alignItems: 'flex-end',
-  },
-  scoreText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  scoreSub: {
-    fontSize: 10,
-    color: COLORS.slate[400],
-  },
-  userStickyBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.slate[900],
-    borderTopWidth: 1,
-    borderTopColor: COLORS.slate[800],
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  userStickyLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  userRankBadge: {
-    backgroundColor: COLORS.brand[600],
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  userRankBadgeText: {
-    color: COLORS.common.white,
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  userStickyName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  userStickySub: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-  userStickyRight: {
-    alignItems: 'flex-end',
-  },
-  userStickyScore: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: COLORS.brand[400],
-  },
-  userStickyScoreSub: {
-    fontSize: 10,
-    color: COLORS.slate[400],
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.bg,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    topBarTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    loaderContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 100,
+    },
+    podiumContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      gap: 16,
+      marginVertical: 20,
+    },
+    podiumColumn: {
+      alignItems: 'center',
+      width: 100,
+    },
+    avatarCircle: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: theme.colors.card,
+      borderWidth: 2,
+      justifyContent: 'center',
+      alignItems: 'center',
+      position: 'relative',
+      marginBottom: 8,
+    },
+    goldBorder: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      borderColor: '#fbbf24',
+      borderWidth: 2.5,
+    },
+    avatarInitial: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: theme.colors.text,
+    },
+    rankPill: {
+      position: 'absolute',
+      bottom: -6,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: 10,
+    },
+    rankPillText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: COLORS.common.white,
+    },
+    podiumName: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.colors.text,
+      textAlign: 'center',
+    },
+    podiumScore: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: COLORS.brand[400],
+      marginTop: 2,
+    },
+    podiumAccuracy: {
+      fontSize: 10,
+      color: theme.colors.textSecondary,
+    },
+    listCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 20,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    listCardTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginBottom: 12,
+    },
+    rankRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    rankRowCurrentUser: {
+      backgroundColor: isDark ? 'rgba(94, 67, 243, 0.15)' : 'rgba(94, 67, 243, 0.08)',
+      marginHorizontal: -8,
+      paddingHorizontal: 8,
+      borderRadius: 12,
+    },
+    rankLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      flex: 1,
+    },
+    rankNumber: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: theme.colors.textSecondary,
+      width: 32,
+    },
+    rankNumberCurrent: {
+      color: COLORS.brand[400],
+    },
+    rankName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.colors.text,
+    },
+    rankNameCurrent: {
+      color: COLORS.brand[400],
+      fontWeight: '700',
+    },
+    rankMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 2,
+    },
+    rankMetaText: {
+      fontSize: 11,
+      color: theme.colors.textSecondary,
+    },
+    rankMetaDot: {
+      color: theme.colors.textSecondary,
+      fontSize: 10,
+    },
+    rankRight: {
+      alignItems: 'flex-end',
+    },
+    scoreText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: theme.colors.text,
+    },
+    scoreSub: {
+      fontSize: 10,
+      color: theme.colors.textSecondary,
+    },
+    userStickyBar: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: theme.colors.card,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    userStickyLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    userRankBadge: {
+      backgroundColor: COLORS.brand[600],
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 10,
+    },
+    userRankBadgeText: {
+      color: COLORS.common.white,
+      fontWeight: '800',
+      fontSize: 13,
+    },
+    userStickyName: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    userStickySub: {
+      fontSize: 11,
+      color: theme.colors.textSecondary,
+      marginTop: 2,
+    },
+    userStickyRight: {
+      alignItems: 'flex-end',
+    },
+    userStickyScore: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: COLORS.brand[400],
+    },
+    userStickyScoreSub: {
+      fontSize: 10,
+      color: theme.colors.textSecondary,
+    },
+  });
 
 export default LeaderboardScreen;

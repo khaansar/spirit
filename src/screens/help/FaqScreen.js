@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,9 +17,12 @@ import {
   Shield,
   CreditCard,
   Sparkles,
+  Sun,
+  Moon,
 } from 'lucide-react-native';
 
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 const FAQ_SECTIONS = [
   {
@@ -75,6 +78,9 @@ const FAQ_SECTIONS = [
 ];
 
 export function FaqScreen({ navigation }) {
+  const { theme, isDark, toggleTheme } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+
   const [expandedIndices, setExpandedIndices] = useState({ '0-0': true });
 
   const toggleAccordion = (key) => {
@@ -86,7 +92,7 @@ export function FaqScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       {/* Top Header */}
       <View style={styles.topBar}>
@@ -95,10 +101,16 @@ export function FaqScreen({ navigation }) {
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={20} color={COLORS.slate[200]} />
+          <ArrowLeft size={20} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>Help & FAQs</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          {isDark ? <Sun size={18} color="#fbbf24" /> : <Moon size={18} color={COLORS.brand[600]} />}
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -154,109 +166,112 @@ export function FaqScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-    backgroundColor: COLORS.slate[950],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.slate[900],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topBarTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  heroBanner: {
-    alignItems: 'center',
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 20,
-  },
-  heroTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    marginTop: 10,
-  },
-  heroSubtitle: {
-    fontSize: 13,
-    color: COLORS.slate[400],
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 18,
-  },
-  categoryBlock: {
-    marginBottom: 20,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-    paddingHorizontal: 4,
-  },
-  categoryTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.slate[200],
-  },
-  faqCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  faqQuestionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    gap: 12,
-  },
-  faqQuestionText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.common.white,
-    lineHeight: 20,
-  },
-  faqAnswerContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.slate[800],
-    paddingTop: 12,
-  },
-  faqAnswerText: {
-    fontSize: 13,
-    color: COLORS.slate[300],
-    lineHeight: 20,
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.bg,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    topBarTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 40,
+    },
+    heroBanner: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.card,
+      borderRadius: 16,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginBottom: 20,
+    },
+    heroTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginTop: 10,
+    },
+    heroSubtitle: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+      marginTop: 6,
+      lineHeight: 18,
+    },
+    categoryBlock: {
+      marginBottom: 20,
+    },
+    categoryHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 10,
+      paddingHorizontal: 4,
+    },
+    categoryTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    faqCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginBottom: 8,
+      overflow: 'hidden',
+    },
+    faqQuestionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
+      gap: 12,
+    },
+    faqQuestionText: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.colors.text,
+      lineHeight: 20,
+    },
+    faqAnswerContainer: {
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      paddingTop: 12,
+    },
+    faqAnswerText: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+      lineHeight: 20,
+    },
+  });
 
 export default FaqScreen;

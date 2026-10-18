@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { fetchPopularSeries, fetchCategories } from '../../store/slices/catalogS
 import SeriesCard from '../../components/catalog/SeriesCard';
 import SearchBar from '../../components/common/SearchBar';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export function SeriesListScreen({ route, navigation }) {
   const dispatch = useDispatch();
@@ -23,6 +24,8 @@ export function SeriesListScreen({ route, navigation }) {
   const initialCategory = route?.params?.category?.name || 'All';
   const [selectedFilter, setSelectedFilter] = useState(initialCategory);
   const [search, setSearch] = useState('');
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
 
   useEffect(() => {
     dispatch(fetchPopularSeries());
@@ -49,7 +52,7 @@ export function SeriesListScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       <View style={styles.header}>
         <Text style={styles.title}>Test Series</Text>
@@ -113,73 +116,74 @@ export function SeriesListScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: COLORS.common.white,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: COLORS.slate[400],
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  searchBar: {
-    marginBottom: 14,
-  },
-  filterChipsRow: {
-    gap: 8,
-    paddingBottom: 6,
-  },
-  chip: {
-    backgroundColor: COLORS.slate[900],
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  chipSelected: {
-    backgroundColor: COLORS.brand[600],
-    borderColor: COLORS.brand[600],
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.slate[300],
-  },
-  chipTextSelected: {
-    color: COLORS.common.white,
-    fontWeight: '700',
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 30,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: COLORS.slate[400],
-    fontSize: 14,
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    header: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 8,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: theme.colors.text,
+    },
+    subtitle: {
+      fontSize: 13,
+      color: theme.colors.textMuted,
+      marginTop: 4,
+      marginBottom: 16,
+    },
+    searchBar: {
+      marginBottom: 14,
+    },
+    filterChipsRow: {
+      gap: 8,
+      paddingBottom: 6,
+    },
+    chip: {
+      backgroundColor: theme.colors.card,
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    chipSelected: {
+      backgroundColor: COLORS.brand[600],
+      borderColor: COLORS.brand[600],
+    },
+    chipText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.colors.textSecondary,
+    },
+    chipTextSelected: {
+      color: COLORS.common.white,
+      fontWeight: '700',
+    },
+    listContent: {
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      paddingBottom: 30,
+    },
+    loaderContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyContainer: {
+      paddingVertical: 40,
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: theme.colors.textMuted,
+      fontSize: 14,
+    },
+  });
 
 export default SeriesListScreen;

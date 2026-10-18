@@ -2,13 +2,35 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Clock, HelpCircle, Award, ArrowRight } from 'lucide-react-native';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export function TestCard({ test, onStart, style }) {
+  const { isDark, theme } = useTheme();
+
   return (
-    <View style={[styles.card, style]}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.colors.card,
+          borderColor: theme.colors.cardBorder,
+        },
+        style,
+      ]}
+    >
       <View style={styles.topRow}>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryBadgeText}>{test.categoryName || 'Mock Test'}</Text>
+        <View
+          style={[
+            styles.categoryBadge,
+            {
+              backgroundColor: theme.colors.cardInner,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.categoryBadgeText, { color: theme.colors.textSecondary }]}>
+            {test.categoryName || 'Mock Test'}
+          </Text>
         </View>
 
         {test.difficulty && (
@@ -27,27 +49,57 @@ export function TestCard({ test, onStart, style }) {
         )}
       </View>
 
-      <Text style={styles.title}>{test.title}</Text>
+      <Text style={[styles.title, { color: theme.colors.text }]}>{test.title}</Text>
 
       {/* Test Meta Chips */}
       <View style={styles.metaRow}>
-        <View style={styles.chip}>
-          <Clock size={13} color={COLORS.slate[400]} />
-          <Text style={styles.chipText}>{test.durationMinutes} mins</Text>
+        <View
+          style={[
+            styles.chip,
+            {
+              backgroundColor: theme.colors.cardInner,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <Clock size={13} color={theme.colors.textMuted} />
+          <Text style={[styles.chipText, { color: theme.colors.textSecondary }]}>
+            {test.durationMinutes} mins
+          </Text>
         </View>
 
-        <View style={styles.chip}>
-          <Award size={13} color={COLORS.slate[400]} />
-          <Text style={styles.chipText}>{test.totalMarks} Marks</Text>
+        <View
+          style={[
+            styles.chip,
+            {
+              backgroundColor: theme.colors.cardInner,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <Award size={13} color={theme.colors.textMuted} />
+          <Text style={[styles.chipText, { color: theme.colors.textSecondary }]}>
+            {test.totalMarks} Marks
+          </Text>
         </View>
 
-        <View style={styles.chip}>
-          <HelpCircle size={13} color={COLORS.slate[400]} />
-          <Text style={styles.chipText}>{test.totalQuestions || 100} Qs</Text>
+        <View
+          style={[
+            styles.chip,
+            {
+              backgroundColor: theme.colors.cardInner,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <HelpCircle size={13} color={theme.colors.textMuted} />
+          <Text style={[styles.chipText, { color: theme.colors.textSecondary }]}>
+            {test.totalQuestions || 100} Qs
+          </Text>
         </View>
       </View>
 
-      <View style={styles.divider} />
+      <View style={[styles.divider, { backgroundColor: theme.colors.divider }]} />
 
       <TouchableOpacity
         style={styles.startButton}

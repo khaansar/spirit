@@ -85,12 +85,15 @@ function MainTabNavigator() {
 }
 
 export function AppNavigator() {
+  const { theme } = useTheme();
+
   return (
     <Stack.Navigator
       initialRouteName="MainTabs"
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
+        contentStyle: { backgroundColor: theme.colors.bg },
       }}
     >
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />

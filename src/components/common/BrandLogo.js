@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { GraduationCap } from 'lucide-react-native';
 
 export function BrandLogo({
@@ -9,6 +10,7 @@ export function BrandLogo({
   layout = 'horizontal',
   className = '',
 }) {
+  const { isDark, theme } = useTheme();
   const isStacked = layout === 'stacked';
 
   const sizeStyles = {
@@ -38,26 +40,60 @@ export function BrandLogo({
     <View style={[styles.container, isStacked && styles.containerStacked]}>
       <View style={[styles.logoRow, isStacked && styles.logoRowStacked]}>
         {/* Brand Icon Badge */}
-        <View style={[styles.iconContainer, { width: currentSize.iconSize * 1.5, height: currentSize.iconSize * 1.5 }]}>
-          <GraduationCap size={currentSize.iconSize} color={COLORS.brand[400]} />
+        <View
+          style={[
+            styles.iconContainer,
+            {
+              width: currentSize.iconSize * 1.5,
+              height: currentSize.iconSize * 1.5,
+              backgroundColor: theme.colors.badgeBg,
+              borderColor: theme.colors.badgeBorder,
+            },
+          ]}
+        >
+          <GraduationCap size={currentSize.iconSize} color={isDark ? COLORS.brand[400] : COLORS.brand[600]} />
         </View>
 
         {/* Brand Typography */}
         <View style={styles.textRow}>
-          <Text style={[styles.firstPart, { fontSize: currentSize.firstText }]}>Clear</Text>
-          <Text style={styles.hyphen}>-</Text>
-          <Text style={[styles.secondPart, { fontSize: currentSize.secondText }]}>It</Text>
+          <Text style={[styles.firstPart, { fontSize: currentSize.firstText, color: theme.colors.text }]}>
+            Clear
+          </Text>
+          <Text
+            style={[
+              styles.hyphen,
+              { color: isDark ? COLORS.accent.skyLight : COLORS.brand[600] },
+            ]}
+          >
+            -
+          </Text>
+          <Text
+            style={[
+              styles.secondPart,
+              {
+                fontSize: currentSize.secondText,
+                color: isDark ? COLORS.accent.skyLight : COLORS.brand[600],
+              },
+            ]}
+          >
+            It
+          </Text>
         </View>
       </View>
 
       {/* Tagline */}
       {showTagline && (
         <View style={styles.taglineContainer}>
-          <View style={styles.taglineLine} />
-          <Text style={[styles.taglineText, { fontSize: currentSize.tagline }]}>
+          <View style={[styles.taglineLine, { backgroundColor: theme.colors.border }]} />
+          <Text
+            style={[
+              styles.taglineText,
+              { fontSize: currentSize.tagline, color: theme.colors.textMuted },
+            ]}
+          >
             Practice. Perform. Clear It.
           </Text>
-          <View style={styles.taglineLine} />
+          <View style={[styles.taglineLine, { backgroundColor: theme.colors.border }]} />
         </View>
       )}
     </View>

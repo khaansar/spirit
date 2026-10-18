@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -19,12 +20,15 @@ import Button from '../../components/common/Button';
 import Checkbox from '../../components/common/Checkbox';
 
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { loginUser, clearAuthError } from '../../store/slices/authSlice';
 import { isValidEmail } from '../../utils/validators';
 
 export function LoginScreen({ navigation }) {
   const dispatch = useDispatch();
   const { loginStatus, error } = useSelector((state) => state.auth);
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -75,6 +79,7 @@ export function LoginScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         enabled={Platform.OS === 'ios'}
@@ -92,7 +97,7 @@ export function LoginScreen({ navigation }) {
               onPress={() => navigation.goBack()}
               activeOpacity={0.7}
             >
-              <ArrowLeft size={18} color={COLORS.slate[300]} />
+              <ArrowLeft size={18} color={theme.colors.textSecondary} />
               <Text style={styles.topBackText}>Back to Home</Text>
             </TouchableOpacity>
           )}
@@ -224,153 +229,154 @@ export function LoginScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  card: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  cardHeader: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: COLORS.common.white,
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.slate[400],
-    marginTop: 6,
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorIcon: {
-    marginRight: 8,
-  },
-  errorBannerText: {
-    color: '#fca5a5',
-    fontSize: 13,
-    fontWeight: '500',
-    flex: 1,
-  },
-  form: {
-    width: '100%',
-  },
-  optionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 2,
-    marginBottom: 22,
-  },
-  forgotPasswordText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.brand[400],
-  },
-  loginButton: {
-    marginTop: 4,
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: COLORS.slate[800],
-  },
-  dividerText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.slate[500],
-    letterSpacing: 1,
-  },
-  signupButton: {
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  signupText: {
-    fontSize: 14,
-    color: COLORS.slate[400],
-  },
-  signupHighlight: {
-    color: COLORS.brand[400],
-    fontWeight: '700',
-  },
-  topBackRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 16,
-    paddingVertical: 6,
-    alignSelf: 'flex-start',
-  },
-  topBackText: {
-    fontSize: 13,
-    color: COLORS.slate[300],
-    fontWeight: '600',
-  },
-  guestButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 4,
-  },
-  guestText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.accent.skyLight,
-  },
-  demoFillBtn: {
-    marginTop: 10,
-    alignItems: 'center',
-    paddingVertical: 8,
-    backgroundColor: 'rgba(94, 67, 243, 0.08)',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(94, 67, 243, 0.2)',
-  },
-  demoFillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.brand[400],
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: 20,
+      paddingTop: 30,
+      paddingBottom: 40,
+    },
+    header: {
+      marginBottom: 24,
+      alignItems: 'center',
+    },
+    card: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 24,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: isDark ? 0.4 : 0.08,
+      shadowRadius: 20,
+      elevation: 6,
+    },
+    cardHeader: {
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 26,
+      fontWeight: '800',
+      color: theme.colors.text,
+      letterSpacing: -0.3,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      marginTop: 6,
+    },
+    errorBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(239, 68, 68, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 16,
+    },
+    errorIcon: {
+      marginRight: 8,
+    },
+    errorBannerText: {
+      color: '#fca5a5',
+      fontSize: 13,
+      fontWeight: '500',
+      flex: 1,
+    },
+    form: {
+      width: '100%',
+    },
+    optionsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 2,
+      marginBottom: 22,
+    },
+    forgotPasswordText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: COLORS.brand[400],
+    },
+    loginButton: {
+      marginTop: 4,
+    },
+    dividerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: 24,
+      gap: 12,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: theme.colors.divider,
+    },
+    dividerText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.colors.textMuted,
+      letterSpacing: 1,
+    },
+    signupButton: {
+      alignItems: 'center',
+      paddingVertical: 4,
+    },
+    signupText: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+    },
+    signupHighlight: {
+      color: COLORS.brand[400],
+      fontWeight: '700',
+    },
+    topBackRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 16,
+      paddingVertical: 6,
+      alignSelf: 'flex-start',
+    },
+    topBackText: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+      fontWeight: '600',
+    },
+    guestButton: {
+      alignItems: 'center',
+      paddingVertical: 12,
+      marginTop: 4,
+    },
+    guestText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: COLORS.brand[400],
+    },
+    demoFillBtn: {
+      marginTop: 10,
+      alignItems: 'center',
+      paddingVertical: 8,
+      backgroundColor: 'rgba(94, 67, 243, 0.08)',
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(94, 67, 243, 0.2)',
+    },
+    demoFillText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: COLORS.brand[400],
+    },
+  });
 
 export default LoginScreen;

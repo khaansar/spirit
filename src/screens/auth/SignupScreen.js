@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -19,12 +20,15 @@ import Button from '../../components/common/Button';
 import Checkbox from '../../components/common/Checkbox';
 
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { registerUser, clearAuthError, resetAuthStatus } from '../../store/slices/authSlice';
 import { isValidEmail, validatePassword } from '../../utils/validators';
 
 export function SignupScreen({ navigation }) {
   const dispatch = useDispatch();
   const { registerStatus, error, registerSuccessMessage } = useSelector((state) => state.auth);
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -80,6 +84,7 @@ export function SignupScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         enabled={Platform.OS === 'ios'}
@@ -218,121 +223,122 @@ export function SignupScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  card: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  cardHeader: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: COLORS.common.white,
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.slate[400],
-    marginTop: 6,
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorIcon: {
-    marginRight: 8,
-  },
-  errorBannerText: {
-    color: '#fca5a5',
-    fontSize: 13,
-    fontWeight: '500',
-    flex: 1,
-  },
-  form: {
-    width: '100%',
-  },
-  termsRow: {
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  termsError: {
-    fontSize: 12,
-    color: COLORS.status.error,
-    marginBottom: 10,
-    marginLeft: 4,
-  },
-  signupButton: {
-    marginTop: 18,
-  },
-  footerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 22,
-  },
-  footerText: {
-    fontSize: 14,
-    color: COLORS.slate[400],
-  },
-  footerHighlight: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.brand[400],
-  },
-  successContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  successTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  successText: {
-    fontSize: 14,
-    color: COLORS.slate[300],
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  proceedButton: {
-    width: '100%',
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 40,
+    },
+    header: {
+      marginBottom: 20,
+      alignItems: 'center',
+    },
+    card: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 24,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: isDark ? 0.4 : 0.08,
+      shadowRadius: 20,
+      elevation: 6,
+    },
+    cardHeader: {
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 26,
+      fontWeight: '800',
+      color: theme.colors.text,
+      letterSpacing: -0.3,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+      marginTop: 6,
+    },
+    errorBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(239, 68, 68, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 16,
+    },
+    errorIcon: {
+      marginRight: 8,
+    },
+    errorBannerText: {
+      color: '#fca5a5',
+      fontSize: 13,
+      fontWeight: '500',
+      flex: 1,
+    },
+    form: {
+      width: '100%',
+    },
+    termsRow: {
+      marginTop: 6,
+      marginBottom: 4,
+    },
+    termsError: {
+      fontSize: 12,
+      color: COLORS.status.error,
+      marginBottom: 10,
+      marginLeft: 4,
+    },
+    signupButton: {
+      marginTop: 18,
+    },
+    footerContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 22,
+    },
+    footerText: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+    },
+    footerHighlight: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: COLORS.brand[400],
+    },
+    successContainer: {
+      alignItems: 'center',
+      paddingVertical: 20,
+    },
+    successTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    successText: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 22,
+      marginBottom: 24,
+    },
+    proceedButton: {
+      width: '100%',
+    },
+  });
 
 export default SignupScreen;

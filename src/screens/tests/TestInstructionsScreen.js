@@ -24,6 +24,7 @@ import {
 import Checkbox from '../../components/common/Checkbox';
 import Button from '../../components/common/Button';
 import { COLORS } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { fetchTestStructure } from '../../store/slices/catalogSlice';
 import { startAttemptThunk } from '../../store/slices/attemptSlice';
 
@@ -32,6 +33,8 @@ export function TestInstructionsScreen({ route, navigation }) {
   const { test } = route.params || {};
   const { isAuthenticated } = useSelector((state) => state.auth);
   const { currentTestStructure, loading } = useSelector((state) => state.catalog);
+  const { theme, isDark } = useTheme();
+  const styles = React.useMemo(() => getStyles(theme, isDark), [theme, isDark]);
 
   const [hasAgreed, setHasAgreed] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('English');
@@ -92,7 +95,7 @@ export function TestInstructionsScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.slate[950]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.bg} />
 
       {/* Top Header */}
       <View style={styles.topBar}>
@@ -101,7 +104,7 @@ export function TestInstructionsScreen({ route, navigation }) {
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={20} color={COLORS.slate[200]} />
+          <ArrowLeft size={20} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>Exam Instructions</Text>
         <View style={{ width: 40 }} />
@@ -243,197 +246,209 @@ export function TestInstructionsScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[900],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.slate[900],
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topBarTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.common.white,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  overviewCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 22,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 16,
-  },
-  testTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.common.white,
-    lineHeight: 26,
-  },
-  categoryTag: {
-    fontSize: 12,
-    color: COLORS.brand[400],
-    fontWeight: '600',
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  metaGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  metaBox: {
-    flex: 1,
-    backgroundColor: COLORS.slate[950],
-    borderRadius: 14,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-  },
-  metaVal: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: COLORS.common.white,
-    marginTop: 6,
-  },
-  metaLbl: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-  sectionCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 16,
-  },
-  cardHeader: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.common.white,
-    marginBottom: 12,
-  },
-  langRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  langChip: {
-    flex: 1,
-    height: 40,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.slate[700],
-    backgroundColor: COLORS.slate[950],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  langChipSelected: {
-    borderColor: COLORS.brand[500],
-    backgroundColor: 'rgba(94, 67, 243, 0.15)',
-  },
-  langText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.slate[300],
-  },
-  langTextSelected: {
-    color: COLORS.common.white,
-    fontWeight: '700',
-  },
-  secRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.slate[800],
-  },
-  secInfo: {
-    flex: 1,
-  },
-  secName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.common.white,
-  },
-  secMeta: {
-    fontSize: 11,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-  secMarksBadge: {
-    backgroundColor: COLORS.slate[800],
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  secMarksText: {
-    color: COLORS.slate[300],
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  legendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 6,
-  },
-  legendText: {
-    fontSize: 12,
-    color: COLORS.slate[300],
-    width: '45%',
-  },
-  ruleItem: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  ruleText: {
-    fontSize: 12,
-    color: COLORS.slate[300],
-    lineHeight: 18,
-    flex: 1,
-  },
-  agreementBox: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 16,
-  },
-  startButton: {
-    marginTop: 4,
-  },
-});
+const getStyles = (theme, isDark) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.topBarBg,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    topBarTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.colors.text,
+    },
+    scrollContent: {
+      padding: 20,
+      paddingBottom: 40,
+    },
+    overviewCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 22,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    testTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: theme.colors.text,
+      lineHeight: 26,
+    },
+    categoryTag: {
+      fontSize: 12,
+      color: COLORS.brand[400],
+      fontWeight: '600',
+      marginTop: 4,
+      marginBottom: 16,
+    },
+    metaGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    metaBox: {
+      flex: 1,
+      backgroundColor: theme.colors.cardInner,
+      borderRadius: 14,
+      padding: 12,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+    },
+    metaVal: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: theme.colors.text,
+      marginTop: 6,
+    },
+    metaLbl: {
+      fontSize: 11,
+      color: theme.colors.textMuted,
+      marginTop: 2,
+    },
+    sectionCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    cardHeader: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginBottom: 12,
+    },
+    langRow: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    langChip: {
+      flex: 1,
+      height: 40,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.cardInner,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    langChipSelected: {
+      borderColor: COLORS.brand[500],
+      backgroundColor: 'rgba(94, 67, 243, 0.15)',
+    },
+    langText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.colors.textSecondary,
+    },
+    langTextSelected: {
+      color: COLORS.brand[400],
+      fontWeight: '700',
+    },
+    secRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.divider,
+    },
+    secInfo: {
+      flex: 1,
+    },
+    secName: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.colors.text,
+    },
+    secMeta: {
+      fontSize: 11,
+      color: theme.colors.textMuted,
+      marginTop: 2,
+    },
+    secMarksBadge: {
+      backgroundColor: theme.colors.cardInner,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    secMarksText: {
+      color: theme.colors.textSecondary,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    legendRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    legendDot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      marginRight: 6,
+    },
+    legendText: {
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+      width: '45%',
+    },
+    ruleItem: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'flex-start',
+      marginBottom: 10,
+    },
+    ruleText: {
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+      lineHeight: 18,
+      flex: 1,
+    },
+    agreementBox: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.cardBorder,
+      marginBottom: 16,
+    },
+    startButton: {
+      marginTop: 4,
+    },
+  });
 
 export default TestInstructionsScreen;
