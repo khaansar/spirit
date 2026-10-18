@@ -5,6 +5,14 @@ const ACCESS_TOKEN_KEY = 'clearit_access_token';
 const REFRESH_TOKEN_KEY = 'clearit_refresh_token';
 const USER_KEY = 'clearit_user';
 
+// Timeout helper: prevents async storage from hanging indefinitely
+const withTimeout = (promise, ms = 600) => {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+};
+
 export const storage = {
   async setItem(key, value) {
     try {
@@ -12,7 +20,7 @@ export const storage = {
         localStorage.setItem(key, value);
         return;
       }
-      await SecureStore.setItemAsync(key, value);
+      await withTimeout(SecureStore.setItemAsync(key, value), 800);
     } catch (e) {
       console.warn(`Error setting storage item ${key}:`, e);
     }
@@ -23,7 +31,7 @@ export const storage = {
       if (Platform.OS === 'web') {
         return localStorage.getItem(key);
       }
-      return await SecureStore.getItemAsync(key);
+      return await withTimeout(SecureStore.getItemAsync(key), 600);
     } catch (e) {
       console.warn(`Error reading storage item ${key}:`, e);
       return null;
@@ -36,7 +44,7 @@ export const storage = {
         localStorage.removeItem(key);
         return;
       }
-      await SecureStore.deleteItemAsync(key);
+      await withTimeout(SecureStore.deleteItemAsync(key), 600);
     } catch (e) {
       console.warn(`Error removing storage item ${key}:`, e);
     }
@@ -65,3 +73,5 @@ export const storage = {
     await this.removeItem(USER_KEY);
   },
 };
+
+export default storage;

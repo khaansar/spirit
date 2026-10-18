@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,12 +13,27 @@ import { restoreSession } from '../store/slices/authSlice';
 export function RootNavigator() {
   const dispatch = useDispatch();
   const { isAuthenticated, isRestoringSession } = useSelector((state) => state.auth);
+  const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
-    dispatch(restoreSession());
+    // Safety cap: Splash screen will NEVER hang for more than 1 second
+    const timer = setTimeout(() => {
+      setSplashDone(true);
+    }, 1000);
+
+    dispatch(restoreSession())
+      .unwrap()
+      .catch(() => {})
+      .finally(() => {
+        clearTimeout(timer);
+        setSplashDone(true);
+      });
+
+    return () => clearTimeout(timer);
   }, [dispatch]);
 
-  if (isRestoringSession) {
+  // Only show splash if both still restoring AND within the 1s window
+  if (isRestoringSession && !splashDone) {
     return (
       <View style={styles.splashContainer}>
         <BrandLogo size="lg" showTagline layout="stacked" />
