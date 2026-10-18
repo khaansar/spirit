@@ -4,7 +4,7 @@ import { storage } from '../utils/storage';
 
 export const apiClient = axios.create({
   baseURL: CONFIG.API_BASE_URL,
-  timeout: 15000,
+  timeout: 4000, // Fast 4-second timeout to prevent stalling on offline backends
   headers: {
     'Content-Type': 'application/json',
   },

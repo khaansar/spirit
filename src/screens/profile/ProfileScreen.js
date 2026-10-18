@@ -5,9 +5,9 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   User,
@@ -19,13 +19,15 @@ import {
   LogOut,
   ChevronRight,
   Server,
+  FileText,
+  Trophy,
 } from 'lucide-react-native';
 
 import { COLORS } from '../../constants/theme';
 import { CONFIG } from '../../config/env';
 import { logoutUser } from '../../store/slices/authSlice';
 
-export function ProfileScreen() {
+export function ProfileScreen({ navigation }) {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 
@@ -63,9 +65,50 @@ export function ProfileScreen() {
           </View>
         </View>
 
+        {/* Quick Activity Navigation */}
+        <View style={styles.menuCard}>
+          <Text style={styles.cardHeader}>My Activity</Text>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('AttemptHistory')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(94, 67, 243, 0.15)' }]}>
+                <FileText size={18} color={COLORS.brand[400]} />
+              </View>
+              <View>
+                <Text style={styles.menuTitle}>Attempt History & Solutions</Text>
+                <Text style={styles.menuSub}>Review past test scores and step-by-step keys</Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color={COLORS.slate[500]} />
+          </TouchableOpacity>
+
+          <View style={styles.menuDivider} />
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('Leaderboard', { testSlug: 'mock-cgl-01' })}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                <Trophy size={18} color="#f59e0b" />
+              </View>
+              <View>
+                <Text style={styles.menuTitle}>All-India Leaderboards</Text>
+                <Text style={styles.menuSub}>Compare accuracy and rankings with toppers</Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color={COLORS.slate[500]} />
+          </TouchableOpacity>
+        </View>
+
         {/* Stats Grid */}
         <View style={styles.statsCard}>
-          <Text style={styles.cardHeader}>Learning Performance</Text>
+          <Text style={styles.cardHeader}>Overall Performance</Text>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <Award size={20} color={COLORS.brand[400]} />
@@ -93,7 +136,9 @@ export function ProfileScreen() {
 
           <View style={styles.menuItem}>
             <View style={styles.menuLeft}>
-              <Server size={18} color={COLORS.slate[400]} />
+              <View style={[styles.menuIconBox, { backgroundColor: COLORS.slate[800] }]}>
+                <Server size={18} color={COLORS.slate[400]} />
+              </View>
               <View>
                 <Text style={styles.menuTitle}>Backend Server</Text>
                 <Text style={styles.menuSub}>{CONFIG.API_BASE_URL}</Text>
@@ -192,7 +237,7 @@ const styles = StyleSheet.create({
     color: COLORS.accent.skyLight,
     letterSpacing: 0.5,
   },
-  statsCard: {
+  menuCard: {
     backgroundColor: COLORS.slate[900],
     borderRadius: 20,
     padding: 18,
@@ -205,6 +250,48 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.common.white,
     marginBottom: 14,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  menuLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  menuIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.common.white,
+  },
+  menuSub: {
+    fontSize: 12,
+    color: COLORS.slate[400],
+    marginTop: 2,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: COLORS.slate[800],
+    marginVertical: 10,
+  },
+  statsCard: {
+    backgroundColor: COLORS.slate[900],
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: COLORS.slate[800],
+    marginBottom: 20,
   },
   statsRow: {
     flexDirection: 'row',
@@ -227,36 +314,6 @@ const styles = StyleSheet.create({
   },
   statLbl: {
     fontSize: 11,
-    color: COLORS.slate[400],
-    marginTop: 2,
-  },
-  menuCard: {
-    backgroundColor: COLORS.slate[900],
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.slate[800],
-    marginBottom: 24,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  menuLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.common.white,
-  },
-  menuSub: {
-    fontSize: 12,
     color: COLORS.slate[400],
     marginTop: 2,
   },

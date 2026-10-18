@@ -11,6 +11,9 @@ import SeriesDetailScreen from '../screens/catalog/SeriesDetailScreen';
 import TestInstructionsScreen from '../screens/tests/TestInstructionsScreen';
 import TestAttemptScreen from '../screens/attempt/TestAttemptScreen';
 import TestResultScreen from '../screens/attempt/TestResultScreen';
+import SolutionsReviewScreen from '../screens/attempt/SolutionsReviewScreen';
+import LeaderboardScreen from '../screens/leaderboard/LeaderboardScreen';
+import AttemptHistoryScreen from '../screens/history/AttemptHistoryScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
 import { COLORS } from '../constants/theme';
@@ -88,6 +91,9 @@ export function AppNavigator() {
         component={TestResultScreen}
         options={{ gestureEnabled: false }}
       />
+      <Stack.Screen name="SolutionsReview" component={SolutionsReviewScreen} />
+      <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+      <Stack.Screen name="AttemptHistory" component={AttemptHistoryScreen} />
     </Stack.Navigator>
   );
 }

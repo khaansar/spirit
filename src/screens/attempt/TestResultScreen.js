@@ -5,9 +5,9 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Award,
   CheckCircle2,
@@ -15,7 +15,8 @@ import {
   HelpCircle,
   ArrowRight,
   TrendingUp,
-  RotateCcw,
+  Trophy,
+  FileText,
 } from 'lucide-react-native';
 
 import { COLORS } from '../../constants/theme';
@@ -23,6 +24,7 @@ import { COLORS } from '../../constants/theme';
 export function TestResultScreen({ route, navigation }) {
   const { result } = route.params || {};
 
+  const attemptId = result?.attemptId || 'att-101';
   const score = result?.score ?? 16;
   const totalMarks = result?.totalMarks ?? 20;
   const accuracy = result?.accuracy ?? 80;
@@ -116,22 +118,34 @@ export function TestResultScreen({ route, navigation }) {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
+          {/* Review Solutions Button */}
           <TouchableOpacity
             style={styles.primaryBtn}
-            onPress={() => navigation.navigate('MainTabs', { screen: 'HomeTab' })}
+            onPress={() => navigation.navigate('SolutionsReview', { attemptId })}
             activeOpacity={0.8}
           >
-            <Text style={styles.primaryBtnText}>Back to Dashboard</Text>
+            <FileText size={18} color={COLORS.common.white} />
+            <Text style={styles.primaryBtnText}>Review Solutions & Explanations</Text>
             <ArrowRight size={18} color={COLORS.common.white} />
           </TouchableOpacity>
 
+          {/* View Leaderboard Button */}
           <TouchableOpacity
             style={styles.secondaryBtn}
-            onPress={() => navigation.navigate('SeriesTab')}
+            onPress={() => navigation.navigate('Leaderboard', { testSlug: 'mock-cgl-01' })}
             activeOpacity={0.7}
           >
-            <RotateCcw size={16} color={COLORS.brand[400]} />
-            <Text style={styles.secondaryBtnText}>Explore More Tests</Text>
+            <Trophy size={16} color={COLORS.brand[400]} />
+            <Text style={styles.secondaryBtnText}>View All-India Leaderboard</Text>
+          </TouchableOpacity>
+
+          {/* Return to Dashboard */}
+          <TouchableOpacity
+            style={styles.ghostBtn}
+            onPress={() => navigation.navigate('MainTabs', { screen: 'HomeTab' })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.ghostBtnText}>Return to Dashboard</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -304,7 +318,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     color: COLORS.common.white,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
   },
   secondaryBtn: {
@@ -322,6 +336,16 @@ const styles = StyleSheet.create({
     color: COLORS.brand[400],
     fontSize: 14,
     fontWeight: '700',
+  },
+  ghostBtn: {
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ghostBtnText: {
+    color: COLORS.slate[400],
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
 
